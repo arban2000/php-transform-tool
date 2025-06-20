@@ -94,24 +94,30 @@ $git_log = get_git_log();
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($git_log as $index => $commit): ?>
+                    <?php if (empty($git_log)): ?>
                         <tr>
-                            <td><code><?= htmlspecialchars($commit['hash']) ?></code></td>
-                            <td><?= htmlspecialchars($commit['message']) ?></td>
-                            <td><?= htmlspecialchars($commit['date']) ?></td>
-                            <td>
-                                <?php if ($index > 0): ?>
-                                    <form method="GET" action="index.php" onsubmit="return confirm('Opravdu chcete obnovit všechny soubory do této starší verze? Veškeré neuložené změny budou ztraceny!');">
-                                        <input type="hidden" name="action" value="restore_commit">
-                                        <input type="hidden" name="hash" value="<?= htmlspecialchars($commit['hash']) ?>">
-                                        <button type="submit" class="restore-button">🔄 Obnovit do této verze</button>
-                                    </form>
-                                <?php else: ?>
-                                    <strong>(Aktuální verze)</strong>
-                                <?php endif; ?>
-                            </td>
+                            <td colspan="4">Nenalezena žádná historie commitů. Inicializujte Git repozitář.</td>
                         </tr>
-                    <?php endforeach; ?>
+                    <?php else: ?>
+                        <?php foreach ($git_log as $index => $commit): ?>
+                            <tr>
+                                <td><code><?= htmlspecialchars($commit['hash']) ?></code></td>
+                                <td><?= htmlspecialchars($commit['message']) ?></td>
+                                <td><?= htmlspecialchars($commit['date']) ?></td>
+                                <td>
+                                    <?php if ($index > 0): ?>
+                                        <form method="GET" action="index.php" onsubmit="return confirm('Opravdu chcete obnovit všechny soubory do této starší verze? Veškeré neuložené změny budou ztraceny!');">
+                                            <input type="hidden" name="action" value="restore_commit">
+                                            <input type="hidden" name="hash" value="<?= htmlspecialchars($commit['hash']) ?>">
+                                            <button type="submit" class="restore-button">🔄 Obnovit do této verze</button>
+                                        </form>
+                                    <?php else: ?>
+                                        <strong>(Aktuální verze)</strong>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -149,11 +155,23 @@ $git_log = get_git_log();
             
             <hr>
 
-            <div id="analysis-section">
-                <div id="analysis-status-container" style="display: none;">
-                    <strong id="analysis-status"></strong>
-                    <div id="analysis-spinner"></div>
+            <div id="analysis-controls" style="display: none;">
+                <div id="analysis-summary">
+                    <span>Stav: <strong id="analysis-status">Připraven</strong></span>
+                    <span>OK: <strong id="summary-ok">0</strong></span>
+                    <span>Chyb: <strong id="summary-error">0</strong></span>
+                    <span>Celkem: <strong id="summary-total">0</strong></span>
                 </div>
+                <div id="analysis-filters">
+                    Zobrazit:
+                    <button class="filter-btn active" data-filter="all">Vše</button>
+                    <button class="filter-btn" data-filter="error">Pouze chyby</button>
+                    <button class="filter-btn" data-filter="ok">Pouze OK</button>
+                </div>
+            </div>
+            
+            <div id="analysis-section">
+                <div id="analysis-spinner" style="display: none;"></div>
                 <div id="analysis-results">
                     </div>
             </div>
@@ -168,9 +186,10 @@ $git_log = get_git_log();
 
     <script>
         // Předáme data z PHP do JavaScriptu, pouze pokud je vybrán projekt
-        const filesToLint = <?= !empty($php_files) ? json_encode($php_files) : '[]'; ?>;
+        const filesToLint = <?= !empty($php_files) ? json_encode(array_values($php_files)) : '[]'; ?>;
         const selectedProject = '<?= htmlspecialchars($selected_project ?? '') ?>';
     </script>
-    <script src="app.js"></script> 
+    <script src="app.js"></script>
+
 </body>
 </html>

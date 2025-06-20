@@ -1,97 +1,109 @@
 // public/app.js
-
-// Počkáme, až se načte celá HTML stránka
 document.addEventListener('DOMContentLoaded', () => {
+    // Načteme všechny potřebné HTML prvky
     const startButton = document.getElementById('start-analysis-btn');
     const resultsDiv = document.getElementById('analysis-results');
-    const progressStatus = document.getElementById('analysis-status');
+    const controlsDiv = document.getElementById('analysis-controls');
+    const statusSpan = document.getElementById('analysis-status');
     const spinner = document.getElementById('analysis-spinner');
+    const summaryOk = document.getElementById('summary-ok');
+    const summaryError = document.getElementById('summary-error');
+    const summaryTotal = document.getElementById('summary-total');
+    const filterButtons = document.querySelectorAll('.filter-btn');
 
-    // Pokud na stránce není tlačítko, nic neděláme
-    if (!startButton) {
-        return;
-    }
+    if (!startButton) return;
 
-    // Přidáme posluchač události na kliknutí tlačítka
-    startButton.addEventListener('click', () => {
-        // Zkontrolujeme, zda jsou data (soubory k analýze) dostupná
+    startButton.addEventListener('click', startSyntaxCheck);
+
+    let currentIndex = 0;
+    let okCount = 0;
+    let errorCount = 0;
+
+    function startSyntaxCheck() {
         if (typeof filesToLint === 'undefined' || filesToLint.length === 0) {
             resultsDiv.innerHTML = '<p>Nenalezeny žádné soubory k analýze.</p>';
             return;
         }
-        startSyntaxCheck();
-    });
-
-    let currentIndex = 0;
-    let errorCount = 0;
-
-    // Hlavní funkce, která spustí celý proces
-    function startSyntaxCheck() {
+        
         // Resetujeme a připravíme rozhraní
         currentIndex = 0;
+        okCount = 0;
         errorCount = 0;
         resultsDiv.innerHTML = '';
-        spinner.style.display = 'block';
+        controlsDiv.style.display = 'block';
+        spinner.style.display = 'inline-block';
         startButton.disabled = true;
+        summaryTotal.textContent = filesToLint.length;
+        summaryOk.textContent = '0';
+        summaryError.textContent = '0';
 
-        // Spustíme kontrolu prvního souboru
+        // Spustíme kontrolu
         checkNextFile();
     }
 
-    // Funkce, která rekurzivně volá sama sebe a zpracovává soubor po souboru
     async function checkNextFile() {
-        // Aktualizujeme stav
-        progressStatus.textContent = `Kontroluji ${currentIndex + 1} / ${filesToLint.length}...`;
+        statusSpan.textContent = `Kontroluji ${currentIndex + 1} / ${filesToLint.length}...`;
 
-        // Pokud už nejsou další soubory, ukončíme proces
         if (currentIndex >= filesToLint.length) {
             spinner.style.display = 'none';
             startButton.disabled = false;
-            progressStatus.textContent = `Hotovo! Zkontrolováno ${filesToLint.length} souborů. Nalezeno ${errorCount} chyb.`;
+            statusSpan.textContent = `Hotovo!`;
             return;
         }
 
         const file = filesToLint[currentIndex];
-        
-        // Vytvoříme data pro odeslání na server
         const formData = new FormData();
         formData.append('project', selectedProject);
         formData.append('file', file);
         
         try {
-            // Pošleme asynchronní požadavek na náš PHP skript
-            const response = await fetch('../api/linter.php', {
-                method: 'POST',
-                body: formData
-            });
+            const response = await fetch('../api/linter.php', { method: 'POST', body: formData });
             const result = await response.json();
-            
-            // Zpracujeme odpověď a aktualizujeme stránku
             updateUI(result);
-
         } catch (error) {
-            // Zpracování chyby sítě atp.
-            updateUI({ status: 'error', file: file, message: `Chyba komunikace se serverem: ${error.message}` });
+            updateUI({ status: 'error', file: file, message: `Chyba komunikace: ${error.message}` });
         }
         
-        // Posuneme se na další soubor a zavoláme funkci znovu
         currentIndex++;
         checkNextFile();
     }
     
-    // Funkce pro aktualizaci uživatelského rozhraní
     function updateUI(result) {
         const resultItem = document.createElement('div');
         if (result.status === 'ok') {
+            okCount++;
+            summaryOk.textContent = okCount;
             resultItem.className = 'result-ok';
             resultItem.innerHTML = `✅ <strong>OK:</strong> ${result.file}`;
         } else {
             errorCount++;
+            summaryError.textContent = errorCount;
             resultItem.className = 'result-error';
             resultItem.innerHTML = `❌ <strong>Chyba:</strong> ${result.file}<pre>${result.message}</pre>`;
         }
         resultsDiv.appendChild(resultItem);
-        // Automaticky scrollujeme dolů, abychom viděli nejnovější výsledky
         resultsDiv.scrollTop = resultsDiv.scrollHeight;
     }
+
+    // PŘIDANÁ LOGIKA PRO FILTROVÁNÍ
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Změníme aktivní tlačítko
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            const filter = button.dataset.filter;
+            const allResults = resultsDiv.querySelectorAll('.result-ok, .result-error');
+
+            allResults.forEach(result => {
+                if (filter === 'all') {
+                    result.style.display = 'block';
+                } else if (filter === 'ok') {
+                    result.style.display = result.classList.contains('result-ok') ? 'block' : 'none';
+                } else if (filter === 'error') {
+                    result.style.display = result.classList.contains('result-error') ? 'block' : 'none';
+                }
+            });
+        });
+    });
 });
