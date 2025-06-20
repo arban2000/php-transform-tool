@@ -61,12 +61,9 @@ $git_log = get_git_log();
     <title>Transformační Nástroj</title>
     <link rel="stylesheet" href="style.css">
 
-    <!-- Styly pro Prism.js (Okaidia tmavý motiv) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css">
-    <!-- Plugin pro číslování řádků -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
-    <!-- Plugin pro zvýraznění konkrétních řádků -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-highlight/prism-line-highlight.min.css">
+    <!-- Načteme lokální styly pro Prism -->
+    <link rel="stylesheet" href="libs/prism/prism-okaidia.css">
+    <link rel="stylesheet" href="libs/prism/prism-line-numbers.css">
 </head>
 <body>
     <h1>Transformační Nástroj</h1>
@@ -219,16 +216,14 @@ $git_log = get_git_log();
     </div>
 
 
-    <!-- ======================================================= -->
-    <!-- PROPOJENÍ S JAVASCRIPTEM                                -->
-    <!-- ======================================================= -->
-    <!-- Načtení knihovny Prism.js pro zvýraznění syntaxe -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-highlight/prism-line-highlight.min.js"></script>
-
-    <!-- Předání dat z PHP do JavaScriptu -->
+	<!-- ======================================================= -->
+	<!-- PROPOJENÍ S JAVASCRIPTEM (LOKÁLNÍ VERZE)               -->
+	<!-- ======================================================= -->
+	<!-- Načteme lokální verzi knihovny Prism.js a Autoloader -->
+	<script src="libs/prism/prism-core.js"></script>
+	<script src="libs/prism/prism-autoloader.js"></script>
+	<script src="libs/prism/prism-line-numbers.js"></script>
+    
     <script>
         const filesToLint = <?= !empty($php_files) ? json_encode(array_values($php_files)) : '[]'; ?>;
         const selectedProject = '<?= htmlspecialchars($selected_project ?? '') ?>';

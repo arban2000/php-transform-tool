@@ -130,13 +130,15 @@ code {
     display: block;
     margin-bottom: 5px;
 }
-.error-item pre {
-    background-color: #111;
-    color: #ffb8b8;
+.result-error pre.error-message-preview {
+    background-color: #5d2b2b;
     padding: 10px;
-    border-radius: 3px;
+    margin-top: 5px;
     white-space: pre-wrap;
     word-wrap: break-word;
+    font-size: 0.9em;
+    color: #ffcccc;
+    border-radius: 3px;
 }
 /* Styly pro asynchronní analýzu */
 #analysis-status {
