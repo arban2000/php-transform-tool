@@ -56,22 +56,29 @@ $git_log = get_git_log();
 
 ?>
 <!DOCTYPE html>
-<html lang="cs">
 <head>
     <meta charset="UTF-8">
     <title>Transformační Nástroj</title>
     <link rel="stylesheet" href="style.css">
 
+    <!-- Styly pro Prism.js (Okaidia tmavý motiv) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css">
+    <!-- Plugin pro číslování řádků -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
+    <!-- Plugin pro zvýraznění konkrétních řádků -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-highlight/prism-line-highlight.min.css">
 </head>
 <body>
     <h1>Transformační Nástroj</h1>
 
-    <?php if ($message): ?>
-        <div class="container message"><p><?= htmlspecialchars($message) ?></p></div>
+    <!-- Zpráva o stavu (zobrazí se po přesměrování) -->
+    <?php if (isset($_GET['message'])): ?>
+        <div class="container message"><p><?= htmlspecialchars($_GET['message']) ?></p></div>
     <?php endif; ?>
 
+    <!-- ======================================================= -->
+    <!-- SEKCE PRO OVLÁDÁNÍ GITU                                 -->
+    <!-- ======================================================= -->
     <div class="container git-control">
         <h2>Verzování Nástroje (Git)</h2>
         
@@ -126,6 +133,9 @@ $git_log = get_git_log();
         </div>
     </div>
 
+    <!-- ======================================================= -->
+    <!-- SEKCE PRO VÝBĚR PROJEKTU K TRANSFORMACI                 -->
+    <!-- ======================================================= -->
     <div class="container project-selector">
         <h2>Projekty k transformaci</h2>
         <?php if (empty($projects)): ?>
@@ -145,9 +155,13 @@ $git_log = get_git_log();
         <?php endif; ?>
     </div>
 
+    <!-- ======================================================= -->
+    <!-- SEKCE PRO AKCE A VÝPISY VE VYBRANÉM PROJEKTU            -->
+    <!-- ======================================================= -->
     <?php if ($selected_project): ?>
         <div class="container actions-and-files">
             
+            <!-- AKČNÍ TLAČÍTKA -->
             <div class="action-buttons">
                 <form method="POST" action="index.php?project=<?= urlencode($selected_project) ?>" style="margin: 0;">
                     <input type="hidden" name="project_name" value="<?= htmlspecialchars($selected_project) ?>">
@@ -158,6 +172,7 @@ $git_log = get_git_log();
             
             <hr>
 
+            <!-- SEKCE PRO SOUHRN A FILTRY ANALÝZY -->
             <div id="analysis-controls" style="display: none;">
                 <div id="analysis-summary">
                     <span>Stav: <strong id="analysis-status">Připraven</strong></span>
@@ -173,12 +188,15 @@ $git_log = get_git_log();
                 </div>
             </div>
             
+            <!-- SEKCE PRO VÝSLEDKY ASYNCHRONNÍ ANALÝZY -->
             <div id="analysis-section">
                 <div id="analysis-spinner" style="display: none;"></div>
                 <div id="analysis-results">
-                    </div>
+                    <!-- Sem bude JavaScript vkládat výsledky kontroly -->
+                </div>
             </div>
 
+            <!-- SKRYTÁ DATA PRO JAVASCRIPT (původní seznam souborů) -->
             <div id="file-list-data" style="display:none;">
                 <?php foreach ($php_files as $file): ?>
                     <div class="file-item"><?= htmlspecialchars($file) ?></div>
@@ -187,11 +205,36 @@ $git_log = get_git_log();
         </div>
     <?php endif; ?>
 
+    <!-- ======================================================= -->
+    <!-- DEDIKOVANÝ KONTEJNER PRO ZOBRAZENÍ KÓDU                 -->
+    <!-- ======================================================= -->
+    <div id="code-display-container" style="display: none;">
+        <div class="code-display-header">
+            <span id="code-display-filename"></span>
+            <button id="code-display-close-btn">&times; Zavřít</button>
+        </div>
+        <div id="code-display-content">
+            <!-- Sem JavaScript vloží <pre> a <code> s obsahem souboru -->
+        </div>
+    </div>
+
+
+    <!-- ======================================================= -->
+    <!-- PROPOJENÍ S JAVASCRIPTEM                                -->
+    <!-- ======================================================= -->
+    <!-- Načtení knihovny Prism.js pro zvýraznění syntaxe -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-highlight/prism-line-highlight.min.js"></script>
+
+    <!-- Předání dat z PHP do JavaScriptu -->
     <script>
-        // Předáme data z PHP do JavaScriptu, pouze pokud je vybrán projekt
         const filesToLint = <?= !empty($php_files) ? json_encode(array_values($php_files)) : '[]'; ?>;
         const selectedProject = '<?= htmlspecialchars($selected_project ?? '') ?>';
     </script>
+    
+    <!-- Náš hlavní aplikační skript -->
     <script src="app.js"></script>
 
 </body>
