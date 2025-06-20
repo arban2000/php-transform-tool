@@ -5,6 +5,7 @@ require_once __DIR__ . '/../src/config.php';
 require_once __DIR__ . '/../src/functions.php';
 
 $message = '';
+$syntax_errors = [];
 
 // --- ZPRACOVÁNÍ GIT AKCÍ ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_commit'])) {
@@ -29,13 +30,26 @@ if(isset($_GET['message'])) {
     $message = $_GET['message'];
 }
 
+if (isset($_POST['analyze_syntax'])) {
+    $project_to_analyze = $_POST['project_name'] ?? '';
+    if ($project_to_analyze) {
+        $syntax_errors = analyze_project_syntax($project_to_analyze);
+        if (empty($syntax_errors)) {
+            $message = "Kontrola syntaxe dokončena. Nebyly nalezeny žádné chyby v projektu '{$project_to_analyze}'.";
+        } else {
+            $message = "Kontrola syntaxe nalezla chyby v projektu '{$project_to_analyze}'.";
+        }
+    }
+}
+
 // --- Načtení dat pro zobrazení ---
 $projects = get_projects();
-$selected_project = $_GET['project'] ?? null;
+$selected_project = $_GET['project'] ?? ($_POST['project_name'] ?? null); // Zachováme projekt i po POSTu
 $php_files = [];
-if ($selected_project && in_array($selected_project, $projects)) {
+if ($selected_project) {
     $php_files = get_php_files($selected_project);
 }
+$git_log = get_git_log();
 
 // Vždy načteme historii commitů pro zobrazení
 $git_log = get_git_log();
@@ -58,7 +72,7 @@ $git_log = get_git_log();
     <div class="container git-control">
         <h2>Verzování Nástroje (Git)</h2>
         
-		<form method="POST" action="index.php" class="commit-form">
+        <form method="POST" action="index.php" class="commit-form">
             <label for="commit_message">Popisek pro nový "save" (commit):</label>
             <div class="input-group">
                 <textarea name="commit_message" id="commit_message" rows="3" placeholder="Např. Přidána funkce pro ukládání..."></textarea>
@@ -86,7 +100,7 @@ $git_log = get_git_log();
                             <td><?= htmlspecialchars($commit['message']) ?></td>
                             <td><?= htmlspecialchars($commit['date']) ?></td>
                             <td>
-                                <?php if ($index > 0): // Tlačítko nezobrazujeme pro úplně nejnovější verzi ?>
+                                <?php if ($index > 0): ?>
                                     <form method="GET" action="index.php" onsubmit="return confirm('Opravdu chcete obnovit všechny soubory do této starší verze? Veškeré neuložené změny budou ztraceny!');">
                                         <input type="hidden" name="action" value="restore_commit">
                                         <input type="hidden" name="hash" value="<?= htmlspecialchars($commit['hash']) ?>">
@@ -123,7 +137,34 @@ $git_log = get_git_log();
     </div>
 
     <?php if ($selected_project): ?>
-        <div class="container file-viewer">
+        <div class="container actions-and-files">
+            
+            <div class="action-buttons">
+                <form method="POST" action="index.php?project=<?= urlencode($selected_project) ?>" style="margin: 0;">
+                    <input type="hidden" name="project_name" value="<?= htmlspecialchars($selected_project) ?>">
+                    <button type="submit" name="save_project">💾 Uložit snímek</button>
+                </form>
+                <form method="POST" action="index.php?project=<?= urlencode($selected_project) ?>" style="margin: 0;">
+                    <input type="hidden" name="project_name" value="<?= htmlspecialchars($selected_project) ?>">
+                    <button type="submit" name="analyze_syntax">🔎 Spustit kontrolu syntaxe</button>
+                </form>
+            </div>
+            
+            <hr>
+
+            <?php if (!empty($syntax_errors)): ?>
+                <h3>Nalezené chyby v syntaxi:</h3>
+                <div class="error-list">
+                    <?php foreach ($syntax_errors as $error): ?>
+                        <div class="error-item">
+                            <strong>Soubor:</strong> <code><?= htmlspecialchars($error['file']) ?></code>
+                            <pre><?= htmlspecialchars($error['message']) ?></pre>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <hr>
+            <?php endif; ?>
+
             <h2>PHP soubory v projektu: <?= htmlspecialchars($selected_project) ?></h2>
             <p>Nalezeno souborů: <?= count($php_files) ?></p>
             <div class="file-list">

@@ -103,3 +103,38 @@ code {
 .commit-form button:hover {
     background-color: #343a40;
 }
+
+/* Styly pro akční tlačítka a výpis chyb */
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+.action-buttons button {
+    font-size: 1em;
+    padding: 10px 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.error-list {
+    margin-top: 20px;
+}
+.error-item {
+    background-color: #4d2121;
+    border: 1px solid #ff5555;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+.error-item strong {
+    display: block;
+    margin-bottom: 5px;
+}
+.error-item pre {
+    background-color: #111;
+    color: #ffb8b8;
+    padding: 10px;
+    border-radius: 3px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
