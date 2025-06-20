@@ -144,36 +144,33 @@ $git_log = get_git_log();
                     <input type="hidden" name="project_name" value="<?= htmlspecialchars($selected_project) ?>">
                     <button type="submit" name="save_project">💾 Uložit snímek</button>
                 </form>
-                <form method="POST" action="index.php?project=<?= urlencode($selected_project) ?>" style="margin: 0;">
-                    <input type="hidden" name="project_name" value="<?= htmlspecialchars($selected_project) ?>">
-                    <button type="submit" name="analyze_syntax">🔎 Spustit kontrolu syntaxe</button>
-                </form>
+                <button type="button" id="start-analysis-btn">🔎 Spustit kontrolu syntaxe</button>
             </div>
             
             <hr>
 
-            <?php if (!empty($syntax_errors)): ?>
-                <h3>Nalezené chyby v syntaxi:</h3>
-                <div class="error-list">
-                    <?php foreach ($syntax_errors as $error): ?>
-                        <div class="error-item">
-                            <strong>Soubor:</strong> <code><?= htmlspecialchars($error['file']) ?></code>
-                            <pre><?= htmlspecialchars($error['message']) ?></pre>
-                        </div>
-                    <?php endforeach; ?>
+            <div id="analysis-section">
+                <div id="analysis-status-container" style="display: none;">
+                    <strong id="analysis-status"></strong>
+                    <div id="analysis-spinner"></div>
                 </div>
-                <hr>
-            <?php endif; ?>
+                <div id="analysis-results">
+                    </div>
+            </div>
 
-            <h2>PHP soubory v projektu: <?= htmlspecialchars($selected_project) ?></h2>
-            <p>Nalezeno souborů: <?= count($php_files) ?></p>
-            <div class="file-list">
+            <div id="file-list-data" style="display:none;">
                 <?php foreach ($php_files as $file): ?>
-                    <code><?= htmlspecialchars($file) ?></code><br>
+                    <div class="file-item"><?= htmlspecialchars($file) ?></div>
                 <?php endforeach; ?>
             </div>
         </div>
     <?php endif; ?>
 
+    <script>
+        // Předáme data z PHP do JavaScriptu, pouze pokud je vybrán projekt
+        const filesToLint = <?= !empty($php_files) ? json_encode($php_files) : '[]'; ?>;
+        const selectedProject = '<?= htmlspecialchars($selected_project ?? '') ?>';
+    </script>
+    <script src="app.js"></script> 
 </body>
 </html>

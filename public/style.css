@@ -138,3 +138,53 @@ code {
     white-space: pre-wrap;
     word-wrap: break-word;
 }
+/* Styly pro asynchronní analýzu */
+#analysis-status {
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+#analysis-results {
+    background-color: #111;
+    border: 1px solid var(--border-color);
+    padding: 15px;
+    border-radius: 5px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 0.9em;
+}
+
+.result-ok {
+    color: #82d882;
+    padding: 2px 0;
+    border-bottom: 1px solid #2a2a2a;
+}
+.result-error {
+    color: #ffb8b8;
+    padding: 8px 0;
+    border-bottom: 1px solid #553737;
+}
+.result-error pre {
+    color: white;
+    background-color: #5d2b2b;
+    padding: 10px;
+    margin-top: 5px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Jednoduché načítací kolečko (spinner) */
+#analysis-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
