@@ -99,7 +99,7 @@ code {
     transition: background-color 0.2s ease;
 }
 
-/* Změna barvy při najetí myší */
+/* Změna barvy při najetí myší-- */
 .commit-form button:hover {
     background-color: #343a40;
 }
