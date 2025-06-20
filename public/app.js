@@ -1,6 +1,5 @@
-// public/app.js
 document.addEventListener('DOMContentLoaded', () => {
-    // Načteme všechny potřebné HTML prvky
+    // ---- 1. Načtení všech potřebných HTML prvků ----
     const startButton = document.getElementById('start-analysis-btn');
     const resultsDiv = document.getElementById('analysis-results');
     const controlsDiv = document.getElementById('analysis-controls');
@@ -11,36 +10,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const summaryTotal = document.getElementById('summary-total');
     const filterButtons = document.querySelectorAll('.filter-btn');
 
-    if (!startButton) return;
+    if (!startButton) {
+        return;
+    }
 
+    // ---- 2. Přidání hlavních posluchačů událostí ----
     startButton.addEventListener('click', startSyntaxCheck);
 
+    // ---- 3. Deklarace proměnných pro řízení procesu ----
     let currentIndex = 0;
     let okCount = 0;
     let errorCount = 0;
 
+    /**
+     * Hlavní funkce, která spustí celý proces kontroly.
+     */
     function startSyntaxCheck() {
         if (typeof filesToLint === 'undefined' || filesToLint.length === 0) {
             resultsDiv.innerHTML = '<p>Nenalezeny žádné soubory k analýze.</p>';
             return;
         }
         
-        // Resetujeme a připravíme rozhraní
         currentIndex = 0;
         okCount = 0;
         errorCount = 0;
         resultsDiv.innerHTML = '';
-        controlsDiv.style.display = 'block';
+        controlsDiv.style.display = 'flex';
         spinner.style.display = 'inline-block';
         startButton.disabled = true;
         summaryTotal.textContent = filesToLint.length;
         summaryOk.textContent = '0';
         summaryError.textContent = '0';
-
-        // Spustíme kontrolu
+        
         checkNextFile();
     }
 
+    /**
+     * Funkce, která rekurzivně volá sama sebe a zpracovává soubor po souboru.
+     */
     async function checkNextFile() {
         statusSpan.textContent = `Kontroluji ${currentIndex + 1} / ${filesToLint.length}...`;
 
@@ -52,12 +59,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const file = filesToLint[currentIndex];
+        
         const formData = new FormData();
         formData.append('project', selectedProject);
         formData.append('file', file);
         
         try {
-            const response = await fetch('../api/linter.php', { method: 'POST', body: formData });
+            const response = await fetch('../api/linter.php', {
+                method: 'POST',
+                body: formData
+            });
             const result = await response.json();
             updateUI(result);
         } catch (error) {
@@ -68,27 +79,46 @@ document.addEventListener('DOMContentLoaded', () => {
         checkNextFile();
     }
     
+    /**
+     * Funkce pro aktualizaci uživatelského rozhraní s výsledkem kontroly.
+     * @param {object} result - Objekt s výsledkem z API.
+     */
     function updateUI(result) {
         const resultItem = document.createElement('div');
+        
+        const fileAndLine = result.file;
+        let lineNumber = '';
+
+        const match = result.message ? result.message.match(/on line (\d+)/) : null;
+        if (match) {
+            lineNumber = match[1];
+        }
+
         if (result.status === 'ok') {
             okCount++;
             summaryOk.textContent = okCount;
             resultItem.className = 'result-ok';
-            resultItem.innerHTML = `✅ <strong>OK:</strong> ${result.file}`;
+            resultItem.innerHTML = `✅ <strong>OK:</strong> ${fileAndLine}`;
         } else {
             errorCount++;
             summaryError.textContent = errorCount;
             resultItem.className = 'result-error';
-            resultItem.innerHTML = `❌ <strong>Chyba:</strong> ${result.file}<pre>${result.message}</pre>`;
+            resultItem.innerHTML = `
+                <div class="error-header">
+                    <span>❌ <strong>Chyba:</strong> ${fileAndLine}</span>
+                    <a href="#" class="view-code-btn" data-project="${selectedProject}" data-file="${fileAndLine}" data-line="${lineNumber}">Zobrazit kód</a>
+                </div>
+                <pre class="error-message-preview">${result.message}</pre>
+            `;
         }
         resultsDiv.appendChild(resultItem);
         resultsDiv.scrollTop = resultsDiv.scrollHeight;
     }
 
-    // PŘIDANÁ LOGIKA PRO FILTROVÁNÍ
+
+    // ---- 4. Logika pro filtrování ----
     filterButtons.forEach(button => {
         button.addEventListener('click', () => {
-            // Změníme aktivní tlačítko
             filterButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
 
@@ -105,5 +135,83 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
+    });
+
+
+    // ---- 5. Logika pro interaktivní zobrazení kódu ----
+    resultsDiv.addEventListener('click', async (event) => {
+        if (event.target.classList.contains('view-code-btn')) {
+            event.preventDefault();
+            
+            const button = event.target;
+            const project = button.dataset.project;
+            const file = button.dataset.file;
+            const line = button.dataset.line;
+            const codeContainerId = `code-${file.replace(/[^a-zA-Z0-9]/g, '-')}`;
+            let codeContainer = document.getElementById(codeContainerId);
+
+            if (codeContainer) {
+                const isHidden = codeContainer.style.display === 'none';
+                codeContainer.style.display = isHidden ? 'block' : 'none';
+                button.textContent = isHidden ? 'Skrýt kód' : 'Zobrazit kód';
+                return;
+            }
+
+            button.textContent = 'Načítám kód...';
+            button.disabled = true;
+            codeContainer = document.createElement('div');
+            codeContainer.id = codeContainerId;
+            codeContainer.className = 'code-viewer';
+            button.closest('.error-header').nextElementSibling.insertAdjacentElement('afterend', codeContainer);
+
+            try {
+                // ========================================================
+                // ZDE JE KLÍČOVÁ OPRAVA
+                // Vytvoříme novou formData konstantu specificky pro tento požadavek.
+                // ========================================================
+                const formData = new FormData();
+                formData.append('project', project);
+                formData.append('file', file);
+                
+                const response = await fetch('../api/get_file_content.php', { method: 'POST', body: formData });
+                const responseText = await response.text();
+                const data = JSON.parse(responseText);
+
+                if (data.status === 'ok') {
+                    const pre = document.createElement('pre');
+                    if (line) pre.setAttribute('data-line', line);
+                    pre.className = 'line-numbers';
+                    
+                    const code = document.createElement('code');
+                    code.className = 'language-php';
+                    code.textContent = data.content;
+                    
+                    pre.appendChild(code);
+                    codeContainer.appendChild(pre);
+                    
+                    try {
+                        Prism.highlightAllUnder(codeContainer);
+                    } catch (prismError) {
+                        console.error("Chyba v knihovně Prism.js:", prismError);
+                        codeContainer.innerHTML += `<p class="error-message">Chyba při zvýrazňování syntaxe.</p>`;
+                    }
+
+                    button.textContent = 'Skrýt kód';
+                } else {
+                    codeContainer.innerHTML = `<p class="error-message">Chyba načtení souboru: ${data.message}</p>`;
+                    button.textContent = 'Zkusit znovu';
+                }
+            } catch (error) {
+                const errorMessage = `Chyba zpracování v JavaScriptu: ${error.name} - ${error.message}.`;
+                codeContainer.innerHTML = `<p class="error-message">${errorMessage}</p>`;
+                button.textContent = 'Zkusit znovu';
+                console.error("Detailní chyba při zobrazování kódu:", error);
+                if (typeof responseText !== 'undefined') {
+                    console.error("Původní odpověď ze serveru, která není platný JSON:", responseText);
+                }
+            } finally {
+                button.disabled = false;
+            }
+        }
     });
 });

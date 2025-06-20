@@ -61,6 +61,9 @@ $git_log = get_git_log();
     <meta charset="UTF-8">
     <title>Transformační Nástroj</title>
     <link rel="stylesheet" href="style.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-highlight/prism-line-highlight.min.css">
 </head>
 <body>
     <h1>Transformační Nástroj</h1>
