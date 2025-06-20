@@ -56,3 +56,50 @@ code {
     font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
     font-size: 0.9em;
 }
+/* =================================== */
+/* Styly pro formulář na Git commit  */
+/* =================================== */
+
+.commit-form label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+/* Kontejner pro input a tlačítko, použijeme Flexbox */
+.commit-form .input-group {
+    display: flex;
+    /* Změna: Použijeme center pro lepší vertikální kontrolu */
+    align-items: center; 
+    gap: 10px; /* Mezera mezi prvky */
+}
+
+/* Textové pole se roztáhne na maximum volného místa */
+.commit-form textarea {
+    flex-grow: 1;
+    /* Zvětšíme písmo a padding */
+    font-size: 1.1em;
+    padding: 15px; 
+    border: 1px solid var(--border-color);
+    resize: none;
+    line-height: 1.4; /* Zlepší čitelnost víceřádkového textu */
+}
+
+/* Tlačítko bude mít také větší písmo a padding */
+.commit-form button {
+    /* Nová černá barva a větší padding pro stejnou výšku */
+    background-color: #212529; /* Tmavě šedá, skoro černá */
+    border: 1px solid #6c757d; /* Světlejší okraj, aby bylo vidět */
+    color: white;
+    font-size: 1.1em;
+    font-weight: bold;
+    /* Klíčové: Stejný vertikální padding jako u textarea */
+    padding: 15px 25px; 
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+/* Změna barvy při najetí myší */
+.commit-form button:hover {
+    background-color: #343a40;
+}

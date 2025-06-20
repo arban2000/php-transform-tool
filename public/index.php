@@ -58,10 +58,12 @@ $git_log = get_git_log();
     <div class="container git-control">
         <h2>Verzování Nástroje (Git)</h2>
         
-        <form method="POST" action="index.php" class="commit-form">
+		<form method="POST" action="index.php" class="commit-form">
             <label for="commit_message">Popisek pro nový "save" (commit):</label>
-            <textarea name="commit_message" id="commit_message" rows="2" placeholder="Např. Přidána funkce pro ukládání..."></textarea>
-            <button type="submit" name="create_commit">💾 Vytvořit nový bod obnovy</button>
+            <div class="input-group">
+                <textarea name="commit_message" id="commit_message" rows="3" placeholder="Např. Přidána funkce pro ukládání..."></textarea>
+                <button type="submit" name="create_commit">💾 Vytvořit nový bod obnovy</button>
+            </div>
         </form>
 
         <hr>
