@@ -19,10 +19,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const codeViewToggles = document.querySelectorAll('.code-view-btn');
     const addRuleBtn = document.getElementById('add-rule-btn');
     const rulesTbody = document.getElementById('rules-tbody');
+	const startTransformButton = document.getElementById('start-transform-btn');
 
     // ---- 2. Přidání hlavních posluchačů událostí ----
     if (startButton) startButton.addEventListener('click', startSyntaxCheck);
     if (startPhpstanButton) startPhpstanButton.addEventListener('click', startPhpstanAnalysis);
+	if (startTransformButton) startTransformButton.addEventListener('click', startTransformation);
     if (codeDisplayCloseBtn) codeDisplayCloseBtn.addEventListener('click', () => {
         codeDisplayContainer.style.display = 'none';
     });
@@ -262,5 +264,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+    }
+    // ---- NOVÁ SEKCE: SPUŠTĚNÍ TRANSFORMACE ----
+    async function startTransformation() {
+        if (!confirm('Opravdu chcete spustit transformaci? Bude vytvořena nová pracovní kopie projektu.')) {
+            return;
+        }
+
+        prepareUIForAnalysis('Spouštím transformaci, prosím čekejte...');
+        
+        const formData = new FormData();
+        formData.append('project', selectedProject);
+
+        try {
+            const response = await fetch('../api/transformer.php', { method: 'POST', body: formData });
+            const result = await response.json();
+
+            if (result.status === 'ok') {
+                resultsDiv.innerHTML = `
+                    <div class="result-ok">
+                        ✅ Transformace dokončena!<br>
+                        Aplikováno pravidel: <strong>${result.applied_rules_count}</strong><br>
+                        Změněno souborů: <strong>${result.files_changed}</strong><br>
+                        Pracovní kopie vytvořena v: <code>${result.workspace_path}</code>
+                    </div>`;
+                finalizeUI('Transformace úspěšně proběhla.');
+            } else {
+                resultsDiv.innerHTML = `<div class="result-error"><pre>${result.message}</pre></div>`;
+                finalizeUI('Transformace selhala.');
+            }
+
+        } catch (error) {
+            resultsDiv.innerHTML = `<div class="result-error"><pre>Nastala kritická chyba při komunikaci se serverem: ${error.message}</pre></div>`;
+            finalizeUI('Transformace selhala.');
+        }
     }
 });
