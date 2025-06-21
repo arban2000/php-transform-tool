@@ -308,3 +308,34 @@ code {
 .hljs-comment, .hljs-quote { color: #6a9955; }
 .hljs-variable, .hljs-keyword, .hljs-selector-tag, .hljs-built_in, .hljs-name, .hljs-tag { color: #569cd6; }
 .hljs-string, .hljs-title, .hljs-section, .hljs-attribute, .hljs-literal, .hljs-template-tag, .hljs-template-variable, .hljs-type, .hljs-selector-id, .hljs-selector-class { color: #ce9178; }
+
+/* Styly pro přepínací tlačítka v prohlížeči kódu */
+.code-view-toggles {
+    display: flex;
+    background-color: #1a1a1a;
+    border-radius: 5px;
+    padding: 2px;
+}
+.code-view-btn {
+    flex: 1;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    background-color: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 0.9em;
+    border-radius: 3px;
+}
+.code-view-btn.active {
+    background-color: var(--surface-color);
+    border-color: var(--border-color);
+    font-weight: bold;
+}
+
+/* Logika pro skrývání/zobrazování řádků */
+#code-display-container[data-view="context"] tr:not(.in-context) {
+    display: none;
+}
+#code-display-container[data-view="full"] tr {
+    display: table-row;
+}

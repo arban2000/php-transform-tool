@@ -204,10 +204,14 @@ $git_log = get_git_log();
     <!-- DEDIKOVANÝ KONTEJNER PRO ZOBRAZENÍ KÓDU                 -->
     <!-- ======================================================= -->
     <div id="code-display-container" style="display: none;">
-        <div class="code-display-header">
-            <span id="code-display-filename"></span>
-            <button id="code-display-close-btn">&times; Zavřít</button>
-        </div>
+		<div class="code-display-header">
+    		<div class="code-view-toggles">
+        		<button class="code-view-btn active" data-view="context">Kontext chyby</button>
+        		<button class="code-view-btn" data-view="full">Celý soubor</button>
+    		</div>
+    		<span id="code-display-filename"></span>
+    		<button id="code-display-close-btn">&times; Zavřít</button>
+		</div>
         <div id="code-display-content">
             <!-- Sem JavaScript vloží <pre> a <code> s obsahem souboru -->
         </div>

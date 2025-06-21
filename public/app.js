@@ -21,6 +21,59 @@ document.addEventListener('DOMContentLoaded', () => {
     codeDisplayCloseBtn.addEventListener('click', () => {
         codeDisplayContainer.style.display = 'none';
     });
+
+    // ---- 4. Logika pro interaktivní zobrazení kódu (PŘEPRACOVANÁ PRO HIGHLIGHT.JS) ----
+    resultsDiv.addEventListener('click', async (event) => {
+        if (event.target.classList.contains('view-code-btn')) {
+            event.preventDefault();
+            
+            const button = event.target;
+            const project = button.dataset.project;
+            const file = button.dataset.file;
+            const line = button.dataset.line;
+
+            button.textContent = 'Načítám...';
+            button.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('project', project);
+                formData.append('file', file);
+
+                const response = await fetch('../api/get_file_content.php', { method: 'POST', body: formData });
+                const data = await response.json();
+
+                if (data.status === 'ok') {
+                    codeDisplayFilename.textContent = file;
+                    
+                    const codeBlock = document.createElement('code');
+                    codeBlock.className = 'language-php';
+                    codeBlock.textContent = data.content;
+                    hljs.highlightElement(codeBlock);
+
+                    const finalHtml = addLineNumbersAndHighlight(codeBlock.innerHTML, line);
+                    codeDisplayContent.innerHTML = `<pre><table><tbody>${finalHtml}</tbody></table></pre>`;
+                    
+                    // Nastavíme výchozí zobrazení na "Kontext chyby"
+                    codeDisplayContainer.dataset.view = 'context';
+                    document.querySelector('.code-view-btn[data-view="context"]').classList.add('active');
+                    document.querySelector('.code-view-btn[data-view="full"]').classList.remove('active');
+
+                    codeDisplayContainer.style.display = 'block';
+                    codeDisplayContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                } else {
+                    alert('Chyba načtení souboru: ' + data.message);
+                }
+            } catch (error) {
+                alert('Chyba komunikace se serverem.');
+                console.error("Chyba při zobrazování kódu:", error);
+            } finally {
+                button.textContent = 'Zobrazit kód';
+                button.disabled = false;
+            }
+        }
+    });
     
     // ---- 3. Všechny funkce pro analýzu (zůstávají stejné) ----
     let currentIndex = 0;
@@ -119,61 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-
-    // ---- 4. Logika pro interaktivní zobrazení kódu (PŘEPRACOVANÁ PRO HIGHLIGHT.JS) ----
-    resultsDiv.addEventListener('click', async (event) => {
-        if (event.target.classList.contains('view-code-btn')) {
-            event.preventDefault();
-            
-            const button = event.target;
-            const project = button.dataset.project;
-            const file = button.dataset.file;
-            const line = button.dataset.line;
-
-            button.textContent = 'Načítám...';
-            button.disabled = true;
-
-            try {
-                const formData = new FormData();
-                formData.append('project', project);
-                formData.append('file', file);
-
-                const response = await fetch('../api/get_file_content.php', { method: 'POST', body: formData });
-                const data = await response.json();
-
-                if (data.status === 'ok') {
-                    // Zobrazíme název souboru a samotný kontejner
-                    codeDisplayFilename.textContent = file;
-                    codeDisplayContainer.style.display = 'block';
-
-                    // Vytvoříme blok s kódem, který obarvíme
-                    const codeBlock = document.createElement('code');
-                    codeBlock.className = 'language-php';
-                    codeBlock.textContent = data.content;
-                    hljs.highlightElement(codeBlock); // Voláme novou knihovnu
-
-                    // Přidáme číslování řádků a zvýraznění chybného řádku
-                    const finalHtml = addLineNumbersAndHighlight(codeBlock.innerHTML, line);
-
-                    // Vložíme finální HTML do našeho kontejneru
-                    codeDisplayContent.innerHTML = `<pre><table><tbody>${finalHtml}</tbody></table></pre>`;
-                    
-                    // Srolujeme na zobrazený kód
-                    codeDisplayContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-                } else {
-                    alert('Chyba načtení souboru: ' + data.message);
-                }
-            } catch (error) {
-                alert('Chyba komunikace se serverem.');
-                console.error("Chyba při zobrazování kódu:", error);
-            } finally {
-                button.textContent = 'Zobrazit kód';
-                button.disabled = false;
-            }
-        }
-    });
-
     /**
      * Nová pomocná funkce, která vezme obarvený kód, rozdělí ho na řádky
      * a přidá k nim čísla v tabulkové struktuře.
@@ -181,18 +179,29 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {string} lineToHighlight - Číslo řádku, který se má zvýraznit
      * @returns {string} - Finální HTML pro vložení do tabulky
      */
+    /**
+     * Funkce pro přidání čísel řádků (UPRAVENO)
+     * Nyní přidává i třídu 'in-context' pro řádky v okolí chyby.
+     */
     function addLineNumbersAndHighlight(highlightedHtml, lineToHighlight) {
         const lines = highlightedHtml.split('\n');
+        const contextLines = 5; // Počet řádků před a za chybou
         let numberedHtml = '';
+
         for (let i = 0; i < lines.length; i++) {
             const lineNumber = i + 1;
-            // Zkontrolujeme, zda tento řádek má být zvýrazněn
             const isHighlighted = (lineNumber == lineToHighlight);
-            // Pro prázdné řádky vložíme nedělitelnou mezeru, aby se řádek zobrazil
+            // Zjistíme, zda je řádek v kontextu
+            const isInContext = (lineNumber >= lineToHighlight - contextLines && lineNumber <= parseInt(lineToHighlight) + contextLines);
+            
             const lineContent = lines[i] || '&nbsp;'; 
             
+            let rowClass = '';
+            if(isHighlighted) rowClass = 'highlight-line';
+            if(isInContext) rowClass += ' in-context';
+            
             numberedHtml += `
-                <tr class="${isHighlighted ? 'highlight-line' : ''}">
+                <tr class="${rowClass}" data-line-number="${lineNumber}">
                     <td class="line-number">${lineNumber}</td>
                     <td class="line-code">${lineContent}</td>
                 </tr>
@@ -200,4 +209,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return numberedHtml;
     }
+
+    codeViewToggles.forEach(button => {
+        button.addEventListener('click', (event) => {
+            // Zabráníme případným dalším nechtěným akcím
+            event.stopPropagation();
+            
+            // Odebereme 'active' třídu ze všech tlačítek a přidáme ji jen na to kliknuté
+            codeViewToggles.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            const view = button.dataset.view;
+            // Nastavíme data-atribut na hlavním kontejneru prohlížeče kódu
+            codeDisplayContainer.dataset.view = view;
+        });
+    });
 });
