@@ -157,13 +157,14 @@ $git_log = get_git_log();
         <div class="container actions-and-files">
             
             <!-- AKČNÍ TLAČÍTKA -->
-            <div class="action-buttons">
-                <form method="POST" action="index.php?project=<?= urlencode($selected_project) ?>" style="margin: 0;">
-                    <input type="hidden" name="project_name" value="<?= htmlspecialchars($selected_project) ?>">
-                    <button type="submit" name="save_project">💾 Uložit snímek</button>
-                </form>
-                <button type="button" id="start-analysis-btn">🔎 Spustit kontrolu syntaxe</button>
-            </div>
+			<div class="action-buttons">
+    			<form method="POST" action="index.php?project=<?= urlencode($selected_project) ?>" style="margin: 0;">
+        			<input type="hidden" name="project_name" value="<?= htmlspecialchars($selected_project) ?>">
+        			<button type="submit" name="save_project">💾 Uložit snímek</button>
+    			</form>
+    			<button type="button" id="start-analysis-btn">🔎 Kontrola syntaxe</button>
+    			<button type="button" id="start-phpstan-btn" class="phpstan-btn">🔬 Hloubková analýza (PHPStan)</button>
+			</div>
             
             <hr>
 
