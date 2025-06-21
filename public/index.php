@@ -4,6 +4,44 @@
 require_once __DIR__ . '/../src/config.php';
 require_once __DIR__ . '/../src/functions.php';
 
+// --- ZPRACOVÁNÍ ULOŽENÍ PRAVIDEL ---
+$rules_file_path = __DIR__ . '/../rules.json';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_rules'])) {
+    $rules_from_form = $_POST['rules'] ?? [];
+    $rules_to_save = [];
+    $id_counter = 1;
+
+    // Projdeme data z formuláře a uložíme je ve správném formátu
+    foreach ($rules_from_form as $rule) {
+        $rules_to_save[] = [
+            'id' => $id_counter++,
+            'order' => (int)($rule['order'] ?? 0),
+            'enabled' => isset($rule['enabled']),
+            'description' => $rule['description'] ?? '',
+            'type' => 'regex', // Zatím podporujeme jen regex
+            'find' => $rule['find'] ?? '',
+            'replace' => $rule['replace'] ?? ''
+        ];
+    }
+    // Uložíme JSON v hezky čitelném formátu
+    file_put_contents($rules_file_path, json_encode($rules_to_save, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    
+    // Přesměrujeme se zprávou o úspěchu
+    $message = "Pravidla byla úspěšně uložena.";
+    header('Location: index.php?message=' . urlencode($message));
+    exit();
+}
+
+// --- Načtení pravidel ze souboru pro zobrazení ---
+$rules = [];
+if (file_exists($rules_file_path)) {
+    $rules_data = file_get_contents($rules_file_path);
+    if (!empty($rules_data)) {
+        $rules = json_decode($rules_data, true);
+    }
+}
+
+
 $message = '';
 $syntax_errors = [];
 
@@ -127,6 +165,50 @@ $git_log = get_git_log();
             </table>
         </div>
     </div>
+                    
+    <!-- ======================================================= -->
+    <!-- NOVÁ SEKCE: EDITOR TRANSFORMAČNÍCH PRAVIDEL            -->
+    <!-- ======================================================= -->
+    <div class="container rules-editor">
+        <h2>Transformační Pravidla</h2>
+        <form method="POST" action="index.php">
+            <table id="rules-table">
+                <thead>
+                    <tr>
+                        <th class="col-enabled">Aktivní</th>
+                        <th class="col-order">Pořadí</th>
+                        <th class="col-desc">Popis</th>
+                        <th class="col-find">Najít (RegEx)</th>
+                        <th class="col-replace">Nahradit</th>
+                        <th class="col-actions">Akce</th>
+                    </tr>
+                </thead>
+                <tbody id="rules-tbody">
+                    <?php if (empty($rules)): ?>
+                        <tr id="no-rules-row">
+                            <td colspan="6">Zatím nebyla vytvořena žádná pravidla. Začněte kliknutím na "Přidat pravidlo".</td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($rules as $index => $rule): ?>
+                            <tr>
+                                <td class="col-enabled"><input type="checkbox" name="rules[<?= $index ?>][enabled]" <?= $rule['enabled'] ? 'checked' : '' ?>></td>
+                                <td class="col-order"><input type="number" class="order-input" name="rules[<?= $index ?>][order]" value="<?= htmlspecialchars($rule['order']) ?>"></td>
+                                <td class="col-desc"><textarea name="rules[<?= $index ?>][description]" rows="2"><?= htmlspecialchars($rule['description']) ?></textarea></td>
+                                <td class="col-find"><textarea name="rules[<?= $index ?>][find]" rows="2"><?= htmlspecialchars($rule['find']) ?></textarea></td>
+                                <td class="col-replace"><textarea name="rules[<?= $index ?>][replace]" rows="2"><?= htmlspecialchars($rule['replace']) ?></textarea></td>
+                                <td class="col-actions"><button type="button" class="remove-rule-btn">Odstranit</button></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+            
+            <div class="rules-footer">
+                <button type="button" id="add-rule-btn">Přidat pravidlo</button>
+                <button type="submit" name="save_rules">Uložit všechna pravidla</button>
+            </div>
+        </form>
+    </div>
 
     <!-- ======================================================= -->
     <!-- SEKCE PRO VÝBĚR PROJEKTU K TRANSFORMACI                 -->
@@ -158,12 +240,20 @@ $git_log = get_git_log();
             
             <!-- AKČNÍ TLAČÍTKA -->
 			<div class="action-buttons">
-    			<form method="POST" action="index.php?project=<?= urlencode($selected_project) ?>" style="margin: 0;">
-        			<input type="hidden" name="project_name" value="<?= htmlspecialchars($selected_project) ?>">
-        			<button type="submit" name="save_project">💾 Uložit snímek</button>
-    			</form>
-    			<button type="button" id="start-analysis-btn">🔎 Kontrola syntaxe</button>
-    			<button type="button" id="start-phpstan-btn" class="phpstan-btn">🔬 Hloubková analýza (PHPStan)</button>
+    			<!-- Diagnostická tlačítka -->
+    			<div class="action-group">
+        			<button type="button" id="start-analysis-btn">🔎 Kontrola syntaxe</button>
+        			<button type="button" id="start-phpstan-btn" class="phpstan-btn">🔬 Hloubková analýza</button>
+    			</div>
+
+    			<!-- Transformační a zálohovací tlačítka -->
+    			<div class="action-group">
+         			<button type="button" id="start-transform-btn" class="transform-btn">🚀 Spustit transformaci</button>
+         			<form method="POST" action="index.php?project=<?= urlencode($selected_project) ?>" style="margin: 0;">
+            			<input type="hidden" name="project_name" value="<?= htmlspecialchars($selected_project) ?>">
+            			<button type="submit" name="save_project">💾 Uložit snímek</button>
+        			</form>
+    			</div>
 			</div>
             
             <hr>

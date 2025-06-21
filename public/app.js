@@ -1,3 +1,5 @@
+// public/app.js
+
 document.addEventListener('DOMContentLoaded', () => {
     // ---- 1. Načtení všech potřebných HTML prvků ----
     const startButton = document.getElementById('start-analysis-btn');
@@ -15,18 +17,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const codeDisplayFilename = document.getElementById('code-display-filename');
     const codeDisplayCloseBtn = document.getElementById('code-display-close-btn');
     const codeViewToggles = document.querySelectorAll('.code-view-btn');
-
-    if (!startButton || !startPhpstanButton) return;
+    const addRuleBtn = document.getElementById('add-rule-btn');
+    const rulesTbody = document.getElementById('rules-tbody');
 
     // ---- 2. Přidání hlavních posluchačů událostí ----
-    startButton.addEventListener('click', startSyntaxCheck);
-    startPhpstanButton.addEventListener('click', startPhpstanAnalysis);
-    codeDisplayCloseBtn.addEventListener('click', () => {
+    if (startButton) startButton.addEventListener('click', startSyntaxCheck);
+    if (startPhpstanButton) startPhpstanButton.addEventListener('click', startPhpstanAnalysis);
+    if (codeDisplayCloseBtn) codeDisplayCloseBtn.addEventListener('click', () => {
         codeDisplayContainer.style.display = 'none';
     });
 
     // ---- 3. Pomocné funkce pro ovládání UI ----
-    
     function prepareUIForAnalysis(title) {
         resultsDiv.innerHTML = '';
         controlsDiv.style.display = 'flex';
@@ -47,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---- 4. Logika pro kontrolu syntaxe (Linter) ----
-
     function startSyntaxCheck() {
         if (typeof filesToLint === 'undefined' || filesToLint.length === 0) {
             resultsDiv.innerHTML = '<p>Nenalezeny žádné soubory k analýze.</p>';
@@ -106,7 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---- 5. Logika pro hloubkovou analýzu (PHPStan) ----
-    
     async function startPhpstanAnalysis() {
         prepareUIForAnalysis('Spouštím hloubkovou analýzu, prosím čekejte...');
         
@@ -118,39 +117,27 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             
             resultsDiv.innerHTML = '';
-
-            // ==========================================================
-            // ZDE JE KLÍČOVÁ OPRAVA:
-            // Nejdříve zkontrolujeme, zda PHPStan vrátil platný výstup s klíčem 'totals'.
-            // ==========================================================
+            
             if (result.totals) {
-                // PHPStan proběhl v pořádku, zpracujeme normální výstup
                 summaryError.textContent = result.totals.file_errors;
                 summaryOk.textContent = 'N/A';
                 summaryTotal.textContent = result.totals.files || 'N/A';
-
                 if (result.errors && result.errors.length > 0) {
                     result.errors.forEach(error => updatePhpstanUI(error));
                 } else {
                     resultsDiv.innerHTML = '<div class="result-ok">✅ Hloubková analýza dokončena. Nebyly nalezeny žádné chyby!</div>';
                 }
                 finalizeUI(`Hloubková analýza dokončena! Nalezeno ${result.totals.file_errors} chyb.`);
-
             } else if (result.errors && result.errors.length > 0) {
-                // Pokud 'totals' neexistuje, znamená to, že PHPStan sám o sobě selhal
-                // a poslal nám vlastní chybovou hlášku.
                 summaryError.textContent = 'N/A';
                 summaryOk.textContent = 'N/A';
                 summaryTotal.textContent = 'N/A';
                 resultsDiv.innerHTML = `<div class="result-error"><pre>${result.errors[0].message}</pre></div>`;
                 finalizeUI('Hloubková analýza selhala s kritickou chybou.');
-
             } else {
-                // Neočekávaná chyba
                 resultsDiv.innerHTML = `<div class="result-error"><pre>Obdržena neznámá odpověď ze serveru.</pre></div>`;
                 finalizeUI('Hloubková analýza selhala.');
             }
-
         } catch (error) {
             resultsDiv.innerHTML = `<div class="result-error"><pre>Nastala kritická chyba při komunikaci se serverem: ${error.message}</pre></div>`;
             finalizeUI('Hloubková analýza selhala.');
@@ -165,8 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---- 6. Logika pro zobrazení kódu a filtry ----
-    // Tento kód se nemění
-    
     resultsDiv.addEventListener('click', async (event) => {
         if (event.target.classList.contains('view-code-btn')) {
             event.preventDefault();
@@ -248,4 +233,34 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     });
+
+    // ---- 7. Logika pro editor transformačních pravidel ----
+    if (addRuleBtn && rulesTbody) {
+        addRuleBtn.addEventListener('click', () => {
+            const noRulesRow = document.getElementById('no-rules-row');
+            if (noRulesRow) {
+                noRulesRow.remove();
+            }
+            const newIndex = rulesTbody.getElementsByTagName('tr').length;
+            const newRow = rulesTbody.insertRow();
+            newRow.innerHTML = `
+                <td class="col-enabled"><input type="checkbox" name="rules[${newIndex}][enabled]" checked></td>
+                <td class="col-order"><input type="number" class="order-input" name="rules[${newIndex}][order]" value="${(newIndex + 1) * 10}"></td>
+                <td class="col-desc"><textarea name="rules[${newIndex}][description]" rows="2"></textarea></td>
+                <td class="col-find"><textarea name="rules[${newIndex}][find]" rows="2"></textarea></td>
+                <td class="col-replace"><textarea name="rules[${newIndex}][replace]" rows="2"></textarea></td>
+                <td class="col-actions"><button type="button" class="remove-rule-btn">Odstranit</button></td>
+            `;
+        });
+        rulesTbody.addEventListener('click', (event) => {
+            if (event.target.classList.contains('remove-rule-btn')) {
+                event.target.closest('tr').remove();
+                if (rulesTbody.getElementsByTagName('tr').length === 0) {
+                    const noRulesRow = rulesTbody.insertRow();
+                    noRulesRow.id = 'no-rules-row';
+                    noRulesRow.innerHTML = '<td colspan="6">Zatím nebyla vytvořena žádná pravidla. Začněte kliknutím na "Přidat pravidlo".</td>';
+                }
+            }
+        });
+    }
 });
