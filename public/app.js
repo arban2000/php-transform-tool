@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const codeDisplayContent = document.getElementById('code-display-content');
     const codeDisplayFilename = document.getElementById('code-display-filename');
     const codeDisplayCloseBtn = document.getElementById('code-display-close-btn');
+    const codeViewToggles = document.querySelectorAll('.code-view-btn');
 
     if (!startButton) return;
 
@@ -21,8 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     codeDisplayCloseBtn.addEventListener('click', () => {
         codeDisplayContainer.style.display = 'none';
     });
-
-    // ---- 4. Logika pro interaktivní zobrazení kódu (PŘEPRACOVANÁ PRO HIGHLIGHT.JS) ----
+    
+    // ---- 3. Logika pro zobrazení kódu (při kliknutí na "Zobrazit kód") ----
     resultsDiv.addEventListener('click', async (event) => {
         if (event.target.classList.contains('view-code-btn')) {
             event.preventDefault();
@@ -74,8 +75,51 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    /**
+     * Pomocná funkce, která přidává čísla řádků a kontextové třídy.
+     */
+    function addLineNumbersAndHighlight(highlightedHtml, lineToHighlight) {
+        const lines = highlightedHtml.split('\n');
+        const contextLines = 5; // Počet řádků před a za chybou
+        let numberedHtml = '';
+
+        for (let i = 0; i < lines.length; i++) {
+            const lineNumber = i + 1;
+            const isHighlighted = (lineNumber == lineToHighlight);
+            const isInContext = (lineNumber >= lineToHighlight - contextLines && lineNumber <= parseInt(lineToHighlight) + contextLines);
+            
+            const lineContent = lines[i] || '&nbsp;'; 
+            
+            let rowClass = '';
+            if(isHighlighted) rowClass = 'highlight-line';
+            if(isInContext) rowClass += ' in-context';
+            
+            numberedHtml += `<tr class="${rowClass.trim()}" data-line-number="${lineNumber}">
+                                <td class="line-number">${lineNumber}</td>
+                                <td class="line-code">${lineContent}</td>
+                             </tr>`;
+        }
+        return numberedHtml;
+    }
+
+    // ---- 4. OPRAVENÁ LOGIKA PRO PŘEPÍNÁNÍ ZOBRAZENÍ ----
+    codeViewToggles.forEach(button => {
+        button.addEventListener('click', (event) => {
+            // Zabráníme případným dalším nechtěným akcím
+            event.stopPropagation();
+            
+            // Odebereme 'active' třídu ze všech tlačítek a přidáme ji jen na to kliknuté
+            codeViewToggles.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            const view = button.dataset.view;
+            // Nastavíme data-atribut na hlavním kontejneru prohlížeče kódu
+            codeDisplayContainer.dataset.view = view;
+        });
+    });
     
-    // ---- 3. Všechny funkce pro analýzu (zůstávají stejné) ----
+    // Zde jsou všechny ostatní funkce pro analýzu (startSyntaxCheck, checkNextFile, atd.)
     let currentIndex = 0;
     let okCount = 0;
     let errorCount = 0;
@@ -86,9 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        currentIndex = 0;
-        okCount = 0;
-        errorCount = 0;
+        currentIndex = 0; okCount = 0; errorCount = 0;
         resultsDiv.innerHTML = '';
         controlsDiv.style.display = 'flex';
         spinner.style.display = 'inline-block';
@@ -96,25 +138,21 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryTotal.textContent = filesToLint.length;
         summaryOk.textContent = '0';
         summaryError.textContent = '0';
-        
         checkNextFile();
     }
 
     async function checkNextFile() {
         statusSpan.textContent = `Kontroluji ${currentIndex + 1} / ${filesToLint.length}...`;
-
         if (currentIndex >= filesToLint.length) {
             spinner.style.display = 'none';
             startButton.disabled = false;
             statusSpan.textContent = `Hotovo!`;
             return;
         }
-
         const file = filesToLint[currentIndex];
         const formData = new FormData();
         formData.append('project', selectedProject);
         formData.append('file', file);
-        
         try {
             const response = await fetch('../api/linter.php', { method: 'POST', body: formData });
             const result = await response.json();
@@ -122,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             updateUI({ status: 'error', file: file, message: `Chyba komunikace: ${error.message}` });
         }
-        
         currentIndex++;
         checkNextFile();
     }
@@ -131,12 +168,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const resultItem = document.createElement('div');
         const fileAndLine = result.file;
         let lineNumber = '';
-
         const match = result.message ? result.message.match(/on line (\d+)/) : null;
-        if (match) {
-            lineNumber = match[1];
-        }
-
+        if (match) { lineNumber = match[1]; }
         if (result.status === 'ok') {
             okCount++;
             summaryOk.textContent = okCount;
@@ -169,59 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (filter === 'ok') { result.style.display = result.classList.contains('result-ok') ? 'block' : 'none'; } 
                 else if (filter === 'error') { result.style.display = result.classList.contains('result-error') ? 'block' : 'none'; }
             });
-        });
-    });
-
-    /**
-     * Nová pomocná funkce, která vezme obarvený kód, rozdělí ho na řádky
-     * a přidá k nim čísla v tabulkové struktuře.
-     * @param {string} highlightedHtml - HTML kód po zpracování knihovnou highlight.js
-     * @param {string} lineToHighlight - Číslo řádku, který se má zvýraznit
-     * @returns {string} - Finální HTML pro vložení do tabulky
-     */
-    /**
-     * Funkce pro přidání čísel řádků (UPRAVENO)
-     * Nyní přidává i třídu 'in-context' pro řádky v okolí chyby.
-     */
-    function addLineNumbersAndHighlight(highlightedHtml, lineToHighlight) {
-        const lines = highlightedHtml.split('\n');
-        const contextLines = 5; // Počet řádků před a za chybou
-        let numberedHtml = '';
-
-        for (let i = 0; i < lines.length; i++) {
-            const lineNumber = i + 1;
-            const isHighlighted = (lineNumber == lineToHighlight);
-            // Zjistíme, zda je řádek v kontextu
-            const isInContext = (lineNumber >= lineToHighlight - contextLines && lineNumber <= parseInt(lineToHighlight) + contextLines);
-            
-            const lineContent = lines[i] || '&nbsp;'; 
-            
-            let rowClass = '';
-            if(isHighlighted) rowClass = 'highlight-line';
-            if(isInContext) rowClass += ' in-context';
-            
-            numberedHtml += `
-                <tr class="${rowClass}" data-line-number="${lineNumber}">
-                    <td class="line-number">${lineNumber}</td>
-                    <td class="line-code">${lineContent}</td>
-                </tr>
-            `;
-        }
-        return numberedHtml;
-    }
-
-    codeViewToggles.forEach(button => {
-        button.addEventListener('click', (event) => {
-            // Zabráníme případným dalším nechtěným akcím
-            event.stopPropagation();
-            
-            // Odebereme 'active' třídu ze všech tlačítek a přidáme ji jen na to kliknuté
-            codeViewToggles.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            
-            const view = button.dataset.view;
-            // Nastavíme data-atribut na hlavním kontejneru prohlížeče kódu
-            codeDisplayContainer.dataset.view = view;
         });
     });
 });
