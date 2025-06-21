@@ -61,9 +61,7 @@ $git_log = get_git_log();
     <title>Transformační Nástroj</title>
     <link rel="stylesheet" href="style.css">
 
-    <!-- Načteme lokální styly pro Prism -->
-    <link rel="stylesheet" href="libs/prism/prism-okaidia.css">
-    <link rel="stylesheet" href="libs/prism/prism-line-numbers.css">
+    <link rel="stylesheet" href="libs/highlightjs/stackoverflow-dark.css">
 </head>
 <body>
     <h1>Transformační Nástroj</h1>
@@ -217,20 +215,20 @@ $git_log = get_git_log();
 
 
 	<!-- ======================================================= -->
-	<!-- PROPOJENÍ S JAVASCRIPTEM (LOKÁLNÍ VERZE)               -->
+	<!-- PROPOJENÍ S JAVASCRIPTEM (FINÁLNÍ OPRAVA)               -->
 	<!-- ======================================================= -->
-	<!-- Načteme lokální verzi knihovny Prism.js a Autoloader -->
-	<script src="libs/prism/prism-core.js"></script>
-	<script src="libs/prism/prism-autoloader.js"></script>
-	<script src="libs/prism/prism-line-numbers.js"></script>
-    
-    <script>
-        const filesToLint = <?= !empty($php_files) ? json_encode(array_values($php_files)) : '[]'; ?>;
-        const selectedProject = '<?= htmlspecialchars($selected_project ?? '') ?>';
-    </script>
-    
-    <!-- Náš hlavní aplikační skript -->
-    <script src="app.js"></script>
+
+	<script src="libs/highlightjs/highlight.core.js"></script>
+	<script src="libs/highlightjs/php.js"></script>
+
+	<!-- Předání dat z PHP do JavaScriptu -->
+	<script>
+	    const filesToLint = <?= !empty($php_files) ? json_encode(array_values($php_files)) : '[]'; ?>;
+	    const selectedProject = '<?= htmlspecialchars($selected_project ?? '') ?>';
+	</script>
+
+	<!-- Náš hlavní aplikační skript -->
+	<script src="app.js"></script>
 
 </body>
 </html>

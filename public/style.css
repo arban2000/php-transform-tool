@@ -274,3 +274,37 @@ code {
 .line-highlight {
     background: rgba(255, 0, 0, 0.2) !important;
 }
+
+/* ============================================== */
+/* Styly pro nový prohlížeč kódu s highlight.js   */
+/* ============================================== */
+#code-display-content pre {
+    margin: 0;
+    font-size: 0.9em;
+    padding: 0; /* Zrušíme padding z <pre>, protože ho řídí tabulka */
+}
+#code-display-content table {
+    width: 100%;
+    border-collapse: collapse;
+}
+#code-display-content td {
+    padding: 1px 5px; /* Menší padding pro kompaktnější vzhled */
+    border: none;
+    font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+    vertical-align: top;
+}
+.line-number {
+    text-align: right;
+    color: #888;
+    padding-right: 15px;
+    user-select: none; /* Čísla řádků nepůjdou označit myší */
+    border-right: 1px solid #444;
+}
+.highlight-line {
+    background-color: rgba(255, 255, 0, 0.1); /* Žlutavé podbarvení */
+}
+
+/* Přizpůsobení barev pro highlight.js - nemusí být nutné, ale může pomoci */
+.hljs-comment, .hljs-quote { color: #6a9955; }
+.hljs-variable, .hljs-keyword, .hljs-selector-tag, .hljs-built_in, .hljs-name, .hljs-tag { color: #569cd6; }
+.hljs-string, .hljs-title, .hljs-section, .hljs-attribute, .hljs-literal, .hljs-template-tag, .hljs-template-variable, .hljs-type, .hljs-selector-id, .hljs-selector-class { color: #ce9178; }
