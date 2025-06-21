@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const addRuleBtn = document.getElementById('add-rule-btn');
     const rulesTbody = document.getElementById('rules-tbody');
 	const startTransformButton = document.getElementById('start-transform-btn');
+	let currentWorkspacePath = null;
 
     // ---- 2. Přidání hlavních posluchačů událostí ----
     if (startButton) startButton.addEventListener('click', startSyntaxCheck);
@@ -167,6 +168,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const formData = new FormData();
                 formData.append('project', project);
                 formData.append('file', file);
+                if (currentWorkspacePath) {
+                    formData.append('workspace_path', currentWorkspacePath);
+                }
                 const response = await fetch('../api/get_file_content.php', { method: 'POST', body: formData });
                 const data = await response.json();
                 if (data.status === 'ok') {
@@ -267,11 +271,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // ---- NOVÁ SEKCE: SPUŠTĚNÍ TRANSFORMACE ----
     async function startTransformation() {
-        if (!confirm('Opravdu chcete spustit transformaci? Bude vytvořena nová pracovní kopie projektu.')) {
+        if (!confirm('Opravdu chcete spustit transformaci? Bude vytvořena nová pracovní kopie projektu a poté spuštěna kontrola syntaxe.')) {
             return;
         }
 
-        prepareUIForAnalysis('Spouštím transformaci, prosím čekejte...');
+        prepareUIForAnalysis('Spouštím transformaci a následnou analýzu...');
         
         const formData = new FormData();
         formData.append('project', selectedProject);
@@ -281,14 +285,31 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.status === 'ok') {
-                resultsDiv.innerHTML = `
-                    <div class="result-ok">
-                        ✅ Transformace dokončena!<br>
-                        Aplikováno pravidel: <strong>${result.applied_rules_count}</strong><br>
-                        Změněno souborů: <strong>${result.files_changed}</strong><br>
-                        Pracovní kopie vytvořena v: <code>${result.workspace_path}</code>
-                    </div>`;
-                finalizeUI('Transformace úspěšně proběhla.');
+                // Vyčistíme staré výsledky
+                resultsDiv.innerHTML = '';
+				currentWorkspacePath = result.workspace_path; // Uložíme si cestu pro budoucí použití
+                // Zobrazíme souhrn transformace
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = 'result-ok';
+                summaryDiv.innerHTML = `
+                    ✅ Transformace dokončena!<br>
+                    Aplikováno pravidel: <strong>${result.transform_summary.applied_rules_count}</strong><br>
+                    Změněno souborů: <strong>${result.transform_summary.files_changed}</strong><br>
+                    Pracovní kopie vytvořena v: <code>${result.workspace_path}</code>
+                `;
+                resultsDiv.appendChild(summaryDiv);
+
+                // Zobrazíme výsledky následné kontroly syntaxe
+                if (result.syntax_errors && result.syntax_errors.length > 0) {
+                    summaryError.textContent = result.syntax_errors.length;
+                    result.syntax_errors.forEach(error => updateLinterUI(error));
+                } else {
+                    summaryError.textContent = '0';
+                    resultsDiv.innerHTML += '<div class="result-ok" style="margin-top: 15px;">✅ Následná kontrola syntaxe nenašla žádné chyby! Projekt by měl být v pořádku.</div>';
+                }
+                
+                finalizeUI('Proces dokončen.');
+
             } else {
                 resultsDiv.innerHTML = `<div class="result-error"><pre>${result.message}</pre></div>`;
                 finalizeUI('Transformace selhala.');
