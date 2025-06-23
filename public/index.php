@@ -244,8 +244,10 @@ $git_log = get_git_log();
     			<div class="action-group">
         			<button type="button" id="start-analysis-btn">🔎 Kontrola syntaxe</button>
         			<button type="button" id="start-phpstan-btn" class="phpstan-btn">🔬 Hloubková analýza</button>
+                    <!-- NOVÁ TLAČÍTKA pro pracovní kopii (zobrazí se dynamicky JS po transformaci) -->
+                    <button type="button" id="workspace-analysis-btn" style="display:none;">🔎 Kontrola syntaxe (pracovní kopie)</button>
+                    <button type="button" id="workspace-phpstan-btn" style="display:none;">🔬 Hloubková analýza (pracovní kopie)</button>
     			</div>
-
     			<!-- Transformační a zálohovací tlačítka -->
     			<div class="action-group">
          			<button type="button" id="start-transform-btn" class="transform-btn">🚀 Spustit transformaci</button>

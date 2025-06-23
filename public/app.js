@@ -20,12 +20,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const addRuleBtn = document.getElementById('add-rule-btn');
     const rulesTbody = document.getElementById('rules-tbody');
 	const startTransformButton = document.getElementById('start-transform-btn');
+    const workspaceAnalysisBtn = document.getElementById('workspace-analysis-btn');
+    const workspacePhpstanBtn = document.getElementById('workspace-phpstan-btn');
 	let currentWorkspacePath = null;
 
     // ---- 2. Přidání hlavních posluchačů událostí ----
     if (startButton) startButton.addEventListener('click', startSyntaxCheck);
     if (startPhpstanButton) startPhpstanButton.addEventListener('click', startPhpstanAnalysis);
 	if (startTransformButton) startTransformButton.addEventListener('click', startTransformation);
+    if (workspaceAnalysisBtn) workspaceAnalysisBtn.addEventListener('click', startWorkspaceSyntaxCheck);
+    if (workspacePhpstanBtn) workspacePhpstanBtn.addEventListener('click', startWorkspacePhpstanAnalysis);
     if (codeDisplayCloseBtn) codeDisplayCloseBtn.addEventListener('click', () => {
         codeDisplayContainer.style.display = 'none';
     });
@@ -92,10 +96,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateLinterUI(result) {
         const resultItem = document.createElement('div');
-        const file = result.file;
+        let file = result.file;
         let lineNumber = '';
         const match = result.message ? result.message.match(/on line (\d+)/) : null;
         if (match) lineNumber = match[1];
+
+        // Oprava: pokud je aktivní pracovní kopie, vždy použij pouze relativní cestu (odstraň případné absolutní prefixy)
+        if (currentWorkspacePath && file) {
+            // Odstraň absolutní prefix workspace_path, pokud je v cestě
+            file = file.replace(/^.*workspaces\/[^/]+\//, '');
+        }
 
         if (result.status === 'ok') {
             resultItem.className = 'result-ok';
@@ -149,8 +159,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updatePhpstanUI(error) {
         const resultItem = document.createElement('div');
+        let file = error.file;
+        // Oprava: pokud je aktivní pracovní kopie, vždy použij pouze relativní cestu
+        if (currentWorkspacePath && file) {
+            file = file.replace(/^.*workspaces\/[^/]+\//, '');
+        }
         resultItem.className = 'result-error';
-        resultItem.innerHTML = `<div class="error-header"><span>🔬 <strong>PHPStan:</strong> ${error.file} (ř. ${error.line || 'N/A'})</span><a href="#" class="view-code-btn" data-project="${selectedProject}" data-file="${error.file}" data-line="${error.line || ''}">Zobrazit kód</a></div><pre class="error-message-preview">${error.message}</pre>`;
+        resultItem.innerHTML = `<div class="error-header"><span>🔬 <strong>PHPStan:</strong> ${file} (ř. ${error.line || 'N/A'})</span><a href="#" class="view-code-btn" data-project="${selectedProject}" data-file="${file}" data-line="${error.line || ''}">Zobrazit kód</a></div><pre class="error-message-preview">${error.message}</pre>`;
         resultsDiv.appendChild(resultItem);
     }
 
@@ -160,16 +175,21 @@ document.addEventListener('DOMContentLoaded', () => {
             event.preventDefault();
             const button = event.target;
             const project = button.dataset.project;
-            const file = button.dataset.file;
+            let file = button.dataset.file;
             const line = button.dataset.line;
             button.textContent = 'Načítám...';
             button.disabled = true;
             try {
                 const formData = new FormData();
-                formData.append('project', project);
-                formData.append('file', file);
+                // Očisti cestu k souboru (odstraň počáteční lomítka a redundantní znaky)
+                file = file.replace(/^\/+/, '').replace(/^\.\//, '');
+                // Pokud je workspace_path, neposílej project
                 if (currentWorkspacePath) {
                     formData.append('workspace_path', currentWorkspacePath);
+                    formData.append('file', file);
+                } else {
+                    formData.append('project', project);
+                    formData.append('file', file);
                 }
                 const response = await fetch('../api/get_file_content.php', { method: 'POST', body: formData });
                 const data = await response.json();
@@ -187,10 +207,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     codeDisplayContainer.style.display = 'block';
                     codeDisplayContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } else {
-                    alert('Chyba načtení souboru: ' + data.message);
+                    // Zobrazíme error přímo do codeDisplayContent
+                    codeDisplayFilename.textContent = file;
+                    codeDisplayContent.innerHTML = `
+                        <div class="result-error">
+                            <strong>Chyba načtení souboru:</strong>
+                            <pre class="error-message-preview">${data.message ? data.message : 'Neznámá chyba.'}</pre>
+                            ${data.debug ? `<details style="margin-top:8px;"><summary>Debug info</summary><pre style="font-size:0.85em;white-space:pre-wrap;">${data.debug}</pre></details>` : ''}
+                        </div>
+                    `;
+                    codeDisplayContainer.style.display = 'block';
+                    codeDisplayContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             } catch (error) {
-                alert('Chyba komunikace se serverem.');
+                codeDisplayFilename.textContent = file;
+                codeDisplayContent.innerHTML = `
+                    <div class="result-error">
+                        <strong>Chyba komunikace se serverem:</strong>
+                        <pre class="error-message-preview">${error.message}</pre>
+                    </div>
+                `;
+                codeDisplayContainer.style.display = 'block';
+                codeDisplayContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 console.error("Chyba při zobrazování kódu:", error);
             } finally {
                 button.textContent = 'Zobrazit kód';
@@ -270,12 +308,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     // ---- NOVÁ SEKCE: SPUŠTĚNÍ TRANSFORMACE ----
-    async function startTransformation() {
-        if (!confirm('Opravdu chcete spustit transformaci? Bude vytvořena nová pracovní kopie projektu a poté spuštěna kontrola syntaxe.')) {
+	async function startTransformation() {
+        if (!confirm('Opravdu chcete spustit transformaci? Bude vytvořena nová pracovní kopie.')) {
             return;
         }
 
-        prepareUIForAnalysis('Spouštím transformaci a následnou analýzu...');
+        prepareUIForAnalysis('Spouštím transformaci...');
         
         const formData = new FormData();
         formData.append('project', selectedProject);
@@ -285,31 +323,27 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.status === 'ok') {
-                // Vyčistíme staré výsledky
                 resultsDiv.innerHTML = '';
-				currentWorkspacePath = result.workspace_path; // Uložíme si cestu pro budoucí použití
-                // Zobrazíme souhrn transformace
+
+                // 1. Zobrazíme souhrn transformace
                 const summaryDiv = document.createElement('div');
                 summaryDiv.className = 'result-ok';
                 summaryDiv.innerHTML = `
                     ✅ Transformace dokončena!<br>
                     Aplikováno pravidel: <strong>${result.transform_summary.applied_rules_count}</strong><br>
                     Změněno souborů: <strong>${result.transform_summary.files_changed}</strong><br>
-                    Pracovní kopie vytvořena v: <code>${result.workspace_path}</code>
+                    Pracovní kopie: <code>${result.workspace_path}</code>
                 `;
                 resultsDiv.appendChild(summaryDiv);
+                currentWorkspacePath = result.workspace_path;
 
-                // Zobrazíme výsledky následné kontroly syntaxe
-                if (result.syntax_errors && result.syntax_errors.length > 0) {
-                    summaryError.textContent = result.syntax_errors.length;
-                    result.syntax_errors.forEach(error => updateLinterUI(error));
-                } else {
-                    summaryError.textContent = '0';
-                    resultsDiv.innerHTML += '<div class="result-ok" style="margin-top: 15px;">✅ Následná kontrola syntaxe nenašla žádné chyby! Projekt by měl být v pořádku.</div>';
+                // 2. Zobrazíme nová tlačítka pro analýzu pracovní kopie
+                if (workspaceAnalysisBtn && workspacePhpstanBtn) {
+                    workspaceAnalysisBtn.style.display = '';
+                    workspacePhpstanBtn.style.display = '';
                 }
-                
-                finalizeUI('Proces dokončen.');
 
+                finalizeUI('Transformace dokončena. Proveďte kontrolu pracovní kopie.');
             } else {
                 resultsDiv.innerHTML = `<div class="result-error"><pre>${result.message}</pre></div>`;
                 finalizeUI('Transformace selhala.');
@@ -318,6 +352,89 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             resultsDiv.innerHTML = `<div class="result-error"><pre>Nastala kritická chyba při komunikaci se serverem: ${error.message}</pre></div>`;
             finalizeUI('Transformace selhala.');
+        }
+    }
+
+    // ---- NOVÉ: Kontrola syntaxe pracovní kopie ----
+    async function startWorkspaceSyntaxCheck() {
+        if (!currentWorkspacePath) {
+            alert('Pracovní kopie není k dispozici.');
+            return;
+        }
+        prepareUIForAnalysis('Kontrola syntaxe pracovní kopie...');
+        // Backend endpoint pro workspace linter (nový nebo upravený linter.php)
+        const formData = new FormData();
+        formData.append('workspace_path', currentWorkspacePath);
+        formData.append('project', selectedProject);
+
+        try {
+            const response = await fetch('../api/linter.php', { method: 'POST', body: formData });
+            const result = await response.json();
+            resultsDiv.innerHTML = '';
+            if (Array.isArray(result)) {
+                let errorCount = 0;
+                result.forEach(item => {
+                    updateLinterUI(item);
+                    if (item.status === 'error') errorCount++;
+                });
+                summaryError.textContent = errorCount;
+                summaryOk.textContent = result.length - errorCount;
+                summaryTotal.textContent = result.length;
+                finalizeUI('Kontrola pracovní kopie dokončena.');
+            } else if (result.status === 'ok') {
+                resultsDiv.innerHTML = '<div class="result-ok">✅ Nebyly nalezeny žádné chyby v pracovní kopii.</div>';
+                summaryError.textContent = '0';
+                summaryOk.textContent = '1';
+                summaryTotal.textContent = '1';
+                finalizeUI('Kontrola pracovní kopie dokončena.');
+            } else {
+                resultsDiv.innerHTML = `<div class="result-error"><pre>${result.message}</pre></div>`;
+                finalizeUI('Kontrola pracovní kopie selhala.');
+            }
+        } catch (error) {
+            resultsDiv.innerHTML = `<div class="result-error"><pre>Chyba komunikace: ${error.message}</pre></div>`;
+            finalizeUI('Kontrola pracovní kopie selhala.');
+        }
+    }
+
+    // ---- NOVÉ: Hloubková analýza pracovní kopie ----
+    async function startWorkspacePhpstanAnalysis() {
+        if (!currentWorkspacePath) {
+            alert('Pracovní kopie není k dispozici.');
+            return;
+        }
+        prepareUIForAnalysis('Hloubková analýza pracovní kopie...');
+        const formData = new FormData();
+        formData.append('workspace_path', currentWorkspacePath);
+        formData.append('project', selectedProject);
+
+        try {
+            const response = await fetch('../api/phpstan_analyzer.php', { method: 'POST', body: formData });
+            const result = await response.json();
+            resultsDiv.innerHTML = '';
+            if (result.totals) {
+                summaryError.textContent = result.totals.file_errors;
+                summaryOk.textContent = 'N/A';
+                summaryTotal.textContent = result.totals.files || 'N/A';
+                if (result.errors && result.errors.length > 0) {
+                    result.errors.forEach(error => updatePhpstanUI(error));
+                } else {
+                    resultsDiv.innerHTML = '<div class="result-ok">✅ Hloubková analýza pracovní kopie dokončena. Nebyly nalezeny žádné chyby!</div>';
+                }
+                finalizeUI(`Hloubková analýza pracovní kopie dokončena! Nalezeno ${result.totals.file_errors} chyb.`);
+            } else if (result.errors && result.errors.length > 0) {
+                summaryError.textContent = 'N/A';
+                summaryOk.textContent = 'N/A';
+                summaryTotal.textContent = 'N/A';
+                resultsDiv.innerHTML = `<div class="result-error"><pre>${result.errors[0].message}</pre></div>`;
+                finalizeUI('Hloubková analýza pracovní kopie selhala s kritickou chybou.');
+            } else {
+                resultsDiv.innerHTML = `<div class="result-error"><pre>Obdržena neznámá odpověď ze serveru.</pre></div>`;
+                finalizeUI('Hloubková analýza pracovní kopie selhala.');
+            }
+        } catch (error) {
+            resultsDiv.innerHTML = `<div class="result-error"><pre>Chyba komunikace: ${error.message}</pre></div>`;
+            finalizeUI('Hloubková analýza pracovní kopie selhala.');
         }
     }
 });
