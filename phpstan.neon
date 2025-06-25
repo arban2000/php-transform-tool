@@ -1,0 +1,5 @@
+# phpstan.neon
+parameters:
+    level: 0 # Začneme na nejnižší úrovni, která hledá jen ty nejzávažnější chyby.
+    paths:
+        - originals # Říkáme, že má analyzovat soubory ve složce originals.

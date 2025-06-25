@@ -1,0 +1,45 @@
+================================
+ CHANGELOG - Transformační Nástroj
+================================
+
+Toto je historie vývoje a implementovaných funkcí.
+
+
+Verze 0.3 (cca 20. června 2025) - Asynchronní analýza a UI
+--------------------------------------------------------------
+- [FUNKCE] Implementována asynchronní kontrola syntaxe souborů (`php -l`).
+    - Proces již nezpůsobuje timeout stránky při velkém počtu souborů.
+    - Využívá JavaScript (AJAX) pro posílání požadavků na server soubor po souboru.
+    - Vytvořen dedikovaný backend skript (`api/linter.php`) pro zpracování jednotlivých požadavků.
+- [UI] Přidána vizuální zpětná vazba během analýzy:
+    - Zobrazení průběhu kontroly (např. "Kontroluji 250 / 906...").
+    - Načítací kolečko (spinner) pro indikaci aktivity.
+    - Výsledky se zobrazují v reálném čase, jak přicházejí ze serveru.
+- [FUNKCE] Přidány živé počítadla výsledků analýzy (OK / Chyb / Celkem).
+- [FUNKCE] Přidána možnost filtrovat výsledky analýzy (tlačítka Vše / Pouze chyby / Pouze OK).
+- [VZHLED] Vylepšen vzhled a zarovnání formuláře pro Git commit.
+- [VZHLED] Přidány nové CSS styly pro panel s výsledky analýzy a filtry.
+
+
+Verze 0.2 (cca 20. června 2025) - Integrace Gitu do rozhraní
+------------------------------------------------------------------
+- [FUNKCE] Zabudování ovládání Gitu přímo do webového rozhraní pro verzování samotného nástroje.
+- [FUNKCE] Formulář pro vytváření nových "bodů obnovy" (git commit) s vlastním textovým popiskem.
+- [FUNKCE] Zobrazení kompletní historie verzí nástroje (`git log`) v přehledné tabulce.
+- [FUNKCE] Přidáno tlačítko "Obnovit do této verze" (`git checkout`), které umožňuje vrátit kód nástroje do jakéhokoliv předchozího stavu.
+- [NASTAVENÍ] Založen lokální Git repozitář v kořenovém adresáři projektu.
+- [NASTAVENÍ] Vytvořen soubor `.gitignore` pro ignorování složek s daty projektů (`originals/`, `workspaces/`, `snapshots/`), aby se verzoval pouze kód nástroje.
+- [OPRAVA] Vyřešeny problémy se spouštěním Git příkazů z webu (oprávnění uživatele `www-data`, nastavení identity `user.name` a `user.email`).
+
+
+Verze 0.1 (cca 20. června 2025) - Základní struktura a zobrazení souborů
+--------------------------------------------------------------------------
+- [ARCHITEKTURA] Přechod od databázového přístupu k automatickému skenování složek.
+- [FUNKCE] Nástroj automaticky detekuje všechny projekty (složky) umístěné v adresáři `originals/`.
+- [FUNKCE] Po kliknutí na název projektu se rekurzivně prohledá jeho struktura a zobrazí se kompletní seznam všech nalezených `.php` souborů.
+- [OPRAVA] Opravena chyba ve výpisu souborů, která zobrazovala pouze příponu ".php" místo celé cesty.
+- [ARCHITEKTURA] Kód rozdělen do více souborů pro lepší přehlednost (`public/index.php`, `src/config.php`, `src/functions.php`).
+- [NASTAVENÍ] Vyřešeny problémy s připojením k databázi na Debian serveru.
+    - Vytvořen dedikovaný databázový uživatel `transformer_user`.
+    - Opravena oprávnění pro připojení ze správného hostitele (`localhost`).
+- [VZHLED] Nastaven základní tmavý vzhled (Dark Mode) pro celý nástroj.

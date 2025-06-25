@@ -1,0 +1,83 @@
+[
+    {
+        "id": 1,
+        "order": 5,
+        "enabled": true,
+        "description": "Nahradit zastaralou funkci mysql_connect() za mysqli_connect()",
+        "type": "regex",
+        "find": "\/\\bmysql_connect\\b\/i",
+        "replace": "mysqli_connect"
+    },
+    {
+        "id": 2,
+        "order": 6,
+        "enabled": true,
+        "description": "Nahradit mysql_select_db() a doplnit $conn",
+        "type": "regex",
+        "find": "\/\\bmysql_select_db\\s*\\(([^)]+)\\)\/i",
+        "replace": "mysqli_select_db($conn, $1)"
+    },
+    {
+        "id": 3,
+        "order": 10,
+        "enabled": true,
+        "description": "Opravit zastaralý přístup ke stringu $var{index} na $var[index]",
+        "type": "regex",
+        "find": "\/\\$((?:[a-zA-Z_\\x7f-\\xff][a-zA-Z0-9_\\x7f-\\xff]*)(?:->[a-zA-Z_\\x7f-\\xff][a-zA-Z0-9_\\x7f-\\xff]*)*)\\{([^}]+)\\}\/",
+        "replace": "$$1[$2]"
+    },
+    {
+        "id": 4,
+        "order": 20,
+        "enabled": true,
+        "description": "Odstranit zastaralé předávání reference při volání funkce (&$var)",
+        "type": "regex",
+        "find": "\/&\\$([a-zA-Z_\\x7f-\\xff][a-zA-Z0-9_\\x7f-\\xff]*|this)\/",
+        "replace": "$$1"
+    },
+    {
+        "id": 5,
+        "order": 30,
+        "enabled": true,
+        "description": "Opravit přístup ke znaku u prvku pole $arr['key']{index}",
+        "type": "regex",
+        "find": "\/(\\[[^\\]]+\\])\\{([^}]+)\\}\/",
+        "replace": "$1[$2]"
+    },
+    {
+        "id": 6,
+        "order": 40,
+        "enabled": true,
+        "description": "Odstranit klíčové slovo \"default\" z řádku, kde je i \"case\"",
+        "type": "regex",
+        "find": "\/(case\\s+[^:]+):\\s*default:\/i",
+        "replace": "$1:"
+    },
+    {
+        "id": 7,
+        "order": 50,
+        "enabled": true,
+        "description": "Opravit zastaralé přiřazení objektu referencí (=& new)",
+        "type": "regex",
+        "find": "\/\\s*=\\s*&\\s*new\\b\/i",
+        "replace": "= new"
+    },
+    {
+        "id": 8,
+        "order": 60,
+        "enabled": true,
+        "description": "Nahradit zastaralou funkci mysql_fetch_array() za mysqli_fetch_array()",
+        "type": "regex",
+        "find": "\/\\bmysql_fetch_array\\b\/i",
+        "replace": "mysqli_fetch_array"
+    },
+    {
+        "id": 9,
+        "order": 70,
+        "enabled": true,
+        "description": "Nahradit zastaralou funkci mysql_query() za mysqli_query()",
+        "type": "regex",
+        "find": "\/\\bmysql_query\\b\/i",
+        "replace": "mysqli_query"
+    }
+]

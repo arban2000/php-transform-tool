@@ -38,6 +38,10 @@ if (file_exists($rules_file_path)) {
     $rules_data = file_get_contents($rules_file_path);
     if (!empty($rules_data)) {
         $rules = json_decode($rules_data, true);
+        // Seřadíme pravidla podle 'order' vzestupně
+        usort($rules, function($a, $b) {
+            return ($a['order'] ?? 0) <=> ($b['order'] ?? 0);
+        });
     }
 }
 
