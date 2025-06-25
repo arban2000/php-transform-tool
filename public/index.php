@@ -1,9 +1,32 @@
+<?php session_start(); ?>
 <?php
 // public/index.php
 
 require_once __DIR__ . '/../src/config.php';
 require_once __DIR__ . '/../src/functions.php';
 
+// --- LOGIKA PRO PŘIHLÁŠENÍ A BEZPEČNOST ---
+$login_error = '';
+// Zpracování přihlášení
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
+    if (hash('sha256', $_POST['password']) === PASSWORD_HASH) {
+        $_SESSION['is_logged_in'] = true;
+        header('Location: index.php'); // Přesměrujeme, aby se formulář neodeslal znovu
+        exit();
+    } else {
+        $login_error = 'Nesprávné heslo.';
+    }
+}
+// Zpracování odhlášení
+if (isset($_GET['logout'])) {
+    session_destroy();
+    header('Location: index.php');
+    exit();
+}
+// Pomocná funkce pro kontrolu přihlášení
+function is_logged_in() {
+    return isset($_SESSION['is_logged_in']) && $_SESSION['is_logged_in'] === true;
+}
 // --- ZPRACOVÁNÍ ULOŽENÍ PRAVIDEL ---
 $rules_file_path = __DIR__ . '/../rules.json';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_rules'])) {
@@ -101,11 +124,15 @@ $git_log = get_git_log();
 <head>
     <meta charset="UTF-8">
     <title>Transformační Nástroj</title>
+    <div class="logout-link">
+        <a href="index.php?logout=1">Odhlásit se</a>
+    </div>
     <link rel="stylesheet" href="style.css">
 
     <link rel="stylesheet" href="libs/highlightjs/stackoverflow-dark.css">
 </head>
 <body>
+	<?php if (is_logged_in()): ?>
     <h1>Transformační Nástroj</h1>
 
     <!-- Zpráva o stavu (zobrazí se po přesměrování) -->
@@ -330,6 +357,20 @@ $git_log = get_git_log();
 
 	<!-- Náš hlavní aplikační skript -->
 	<script src="app.js"></script>
+<?php else: ?>
+    <div class="login-container">
+        <form method="POST" action="index.php" class="login-form">
+            <h2>Přihlášení do nástroje</h2>
+            <p>Pro přístup zadejte prosím heslo.</p>
+            
+            <?php if ($login_error): ?>
+                <p class="login-error"><?= htmlspecialchars($login_error) ?></p>
+            <?php endif; ?>
 
+            <input type="password" name="password" id="password" placeholder="Heslo" required autofocus>
+            <button type="submit">Vstoupit</button>
+       </form>
+   </div>
+<?php endif; ?>
 </body>
 </html>
