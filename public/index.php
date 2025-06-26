@@ -67,7 +67,14 @@ if (file_exists($rules_file_path)) {
         });
     }
 }
-
+$libraries_file_path = __DIR__ . '/../libraries.json';
+$supported_libraries = [];
+if (file_exists($libraries_file_path)) {
+    $libraries_data = file_get_contents($libraries_file_path);
+    if (!empty($libraries_data)) {
+        $supported_libraries = json_decode($libraries_data, true);
+    }
+}
 
 $message = '';
 $syntax_errors = [];
@@ -240,6 +247,34 @@ $git_log = get_git_log();
             </div>
         </form>
     </div>
+                    
+   <!-- ======================================================= -->
+   <!-- NOVÁ SEKCE: PODPOROVANÉ KNIHOVNY                       -->
+   <!-- ======================================================= -->
+   <div class="container supported-libs">
+       <h2>Podporované aktualizace knihoven</h2>
+       <p>Následující knihovny budou při transformaci automaticky aktualizovány na novou verzi pomocí Composeru.</p>
+       <table>
+           <thead>
+               <tr>
+                   <th>Knihovna</th>
+                   <th>Popis</th>
+                   <th>Cesta ke staré verzi</th>
+                   <th>Nový balíček (Composer)</th>
+               </tr>
+           </thead>
+           <tbody>
+               <?php foreach ($supported_libraries as $lib): ?>
+                   <tr>
+                       <td><strong><?= htmlspecialchars($lib['name']) ?></strong></td>
+                       <td><?= htmlspecialchars($lib['description']) ?></td>
+                       <td><code><?= htmlspecialchars($lib['old_path']) ?></code></td>
+                       <td><code><?= htmlspecialchars($lib['composer_package']) ?></code></td>
+                   </tr>
+               <?php endforeach; ?>
+           </tbody>
+       </table>
+   </div>
 
     <!-- ======================================================= -->
     <!-- SEKCE PRO VÝBĚR PROJEKTU K TRANSFORMACI                 -->

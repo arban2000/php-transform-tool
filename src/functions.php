@@ -366,3 +366,74 @@ function recursive_delete(string $dir): void {
     }
     rmdir($dir);
 }
+
+/**
+ * Aktualizuje podporované knihovny v pracovní kopii pomocí Composeru.
+ * @param string $workspace_path Absolutní cesta k pracovní kopii projektu.
+ * @return array Souhrn provedených akcí.
+ */
+/**
+* VYLEPŠENÁ FUNKCE: Aktualizuje podporované knihovny a detailně loguje každý krok.
+*/
+/**
+* VYLEPŠENÁ FUNKCE: Aktualizuje podporované knihovny a detailně loguje každý krok.
+*/
+function update_libraries(string $workspace_path): array
+{
+    $log = [];
+    $log[] = "Zahájena aktualizace knihoven v: " . $workspace_path;
+
+    $libraries_file_path = __DIR__ . '/../libraries.json';
+    $supported_libraries = [];
+    if (file_exists($libraries_file_path)) {
+        $supported_libraries = json_decode(file_get_contents($libraries_file_path), true);
+    }
+
+    if (empty($supported_libraries)) {
+        $log[] = "Soubor libraries.json je prázdný nebo neexistuje. Žádné knihovny k aktualizaci.";
+        return ['updated_count' => 0, 'log' => implode("\n", $log)];
+    }
+
+    $composer_packages = [];
+
+    // 1. Smazání starých složek
+    foreach ($supported_libraries as $lib) {
+        $old_lib_path = $workspace_path . '/' . $lib['old_path'];
+        if (is_dir($old_lib_path)) {
+            recursive_delete($old_lib_path);
+            $log[] = "[OK] Odstraněna stará složka: " . $lib['old_path'];
+        } else {
+            $log[] = "[INFO] Stará složka nenalezena, přeskočeno: " . $lib['old_path'];
+        }
+        $composer_packages[] = $lib['composer_package'] . ':' . $lib['version'];
+    }
+
+    // 2. Instalace nových verzí přes Composer
+    if (!empty($composer_packages)) {
+        $log[] = "[INFO] Příprava na spuštění Composeru...";
+        $command = sprintf(
+            'COMPOSER_HOME=/tmp composer require --working-dir=%s --update-no-dev --prefer-dist --no-progress --no-interaction %s',
+            escapeshellarg($workspace_path),
+            implode(' ', $composer_packages)
+        );
+        $log[] = "[DEBUG] Spouštěný příkaz: " . $command;
+
+        // Spustíme příkaz a odchytíme jeho výstup
+        $output = shell_exec($command . " 2>&1");
+        
+        if ($output === null) {
+            $log[] = "[FATAL ERROR] Příkaz shell_exec() selhal. Je pravděpodobně deaktivován v php.ini z bezpečnostních důvodů.";
+        } else {
+            $log[] = "--- Výstup z Composeru ---";
+            $log[] = trim($output);
+            $log[] = "-------------------------";
+        }
+    } else {
+        $log[] = "[INFO] Nebyly nalezeny žádné balíčky pro instalaci pomocí Composeru.";
+    }
+ 
+    return [
+        'updated_count' => count($composer_packages),
+        'log' => implode("\n", $log)
+    ];
+}

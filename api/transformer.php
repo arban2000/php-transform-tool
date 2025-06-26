@@ -22,23 +22,27 @@ if ($workspace_path === false) {
     exit();
 }
 
-// 2. Aplikace pravidel
+// 2. NOVINKA: Aktualizace knihoven
+$library_update_result = update_libraries($workspace_path);
+
+// 3. Aplikace pravidel
 $transform_result = apply_transformation_rules($workspace_path);
 
-// 3. Spuštění základní kontroly syntaxe
+// 4. Spuštění základní kontroly syntaxe
 $syntax_errors = analyze_project_syntax($workspace_path);
 
-// 4. Podmíněné spuštění hloubkové analýzy
+// 5. Podmíněné spuštění hloubkové analýzy
 $phpstan_result = null;
 if (empty($syntax_errors)) {
     // Pokud nejsou žádné syntaktické chyby, spustíme PHPStan
     $phpstan_result = analyze_project_with_phpstan($project);
 }
 
-// 5. Sestavení finálního výsledku
+// 6. Sestavení finálního výsledku
 $final_result = [
     'status' => 'ok',
     'transform_summary' => $transform_result,
+	'library_update_summary' => $library_update_result,
     'workspace_path' => $workspace_path,
     'syntax_errors' => $syntax_errors,
     'phpstan_result' => $phpstan_result // Bude null, pokud se analýza nespustila

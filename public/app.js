@@ -335,6 +335,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     Pracovní kopie: <code>${result.workspace_path}</code>
                 `;
                 resultsDiv.appendChild(summaryDiv);
+               // Přidáme log z aktualizace knihoven, pokud existuje
+              	if (result.library_update_summary && result.library_update_summary.log) {
+                	const logDiv = document.createElement('div');
+                	logDiv.className = 'update-log';
+                	logDiv.innerHTML = `
+                    	<h4>Log aktualizace knihoven:</h4>
+                    	<pre>${result.library_update_summary.log}</pre>
+                	`;
+               		resultsDiv.appendChild(logDiv);
+            	}
+
                 currentWorkspacePath = result.workspace_path;
 
                 // 2. Zobrazíme nová tlačítka pro analýzu pracovní kopie

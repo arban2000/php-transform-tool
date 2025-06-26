@@ -1,0 +1,18 @@
+[
+  {
+    "id": "mpdf",
+    "name": "mPDF",
+    "description": "Knihovna pro generování PDF souborů.",
+    "old_path": "func/mpdf",
+    "composer_package": "mpdf/mpdf",
+    "version": "^8.2"
+  },
+  {
+    "id": "mailer",
+    "name": "PHPMailer",
+    "description": "Knihovna pro odesílání e-mailů.",
+	"old_path": "func/mailer",
+    "composer_package": "phpmailer/phpmailer",
+    "version": "^6.9"
+  }
+]

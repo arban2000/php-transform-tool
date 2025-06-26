@@ -514,3 +514,32 @@ code {
 .logout-link a:hover {
     color: white;
 }
+
+.supported-libs p {
+    margin-top: 0;
+    font-size: 0.9em;
+    color: #ccc;
+}
+
+.supported-libs table {
+    margin-top: 15px;
+}
+
+.update-log {
+    margin-top: 20px;
+    border-top: 1px dashed var(--border-color);
+    padding-top: 15px;
+}
+.update-log h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #ccc;
+}
+.update-log pre {
+    background-color: #111;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 0.85em;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
